@@ -30,21 +30,30 @@ async def root():
 
 @app.get("/api/departments")
 async def get_departments():
-    cache_key = "departments"
-    cached = get_from_cache(cache_key)
-    if cached: return cached
-
-    url = "https://openaccess-api.clevelandart.org/api/departments/"
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        try:
-            response = await client.get(url)
-            if response.status_code == 200:
-                data = response.json()["data"]
-                set_to_cache(cache_key, data)
-                return data
-            raise HTTPException(status_code=response.status_code, detail="Failed to fetch departments")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    # La API de Cleveland no tiene un endpoint de departamentos dinámico, 
+    # por lo que usamos la lista oficial de su documentación.
+    return [
+        {"name": "African Art"},
+        {"name": "American Painting and Sculpture"},
+        {"name": "Art of the Americas"},
+        {"name": "Chinese Art"},
+        {"name": "Contemporary Art"},
+        {"name": "Decorative Art and Design"},
+        {"name": "Drawings"},
+        {"name": "Egyptian and Ancient Near Eastern Art"},
+        {"name": "European Painting and Sculpture"},
+        {"name": "Greek and Roman Art"},
+        {"name": "Indian and South East Asian Art"},
+        {"name": "Islamic Art"},
+        {"name": "Japanese Art"},
+        {"name": "Korean Art"},
+        {"name": "Medieval Art"},
+        {"name": "Modern European Painting and Sculpture"},
+        {"name": "Oceania"},
+        {"name": "Performing Arts, Music, & Film"},
+        {"name": "Photography"},
+        {"name": "Prints"}
+    ]
 
 @app.get("/api/artworks")
 async def get_artworks(page: int = 1, limit: int = 12):
