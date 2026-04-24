@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // State
     let currentPage = 1;
     let currentQuery = '';
-    let iiifBaseUrl = 'https://www.artic.edu/iiif/2'; // Default fallback
     const limit = 12;
 
     // Initialize
@@ -111,11 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             
-            // Update IIIF base URL from config if available
-            if (data.config && data.config.iiif_url) {
-                iiifBaseUrl = data.config.iiif_url;
-            }
-
             displayArtworks(data.data);
             updatePagination(data.pagination);
             
@@ -135,42 +129,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
         artworks.forEach((artwork, index) => {
             // Skip artworks without images for better UX
-            if (!artwork.image_id) return;
+            const imageUrl = artwork.images?.web?.url || '';
+            if (!imageUrl) return;
 
             const card = document.createElement('div');
             card.className = 'artwork-card';
-            card.style.animationDelay = `${index * 0.1}s`;
+            card.style.animationDelay = `${index * 0.05}s`;
             
-            const imageUrl = getImageUrl(artwork.image_id, 300); // Requested smaller size for optimization
             const title = artwork.title || 'Untitled';
-            const artist = artwork.artist_title || 'Unknown Artist';
-            const date = artwork.date_display || 'Unknown Date';
+            const artist = artwork.creators?.[0]?.description || 'Unknown Artist';
+            const date = artwork.creation_date || 'Unknown Date';
             
-            // Use Low Quality Image Placeholder if available from API
-            const lqip = artwork.thumbnail?.lqip || '';
-            const bgStyle = lqip ? `background-image: url('${lqip}'); background-size: cover; background-position: center;` : '';
-            
+            const bgStyle = ''; 
             card.innerHTML = `
                 <div class="image-wrapper" style="${bgStyle}">
-                    <div class="image-placeholder" style="${lqip ? 'opacity: 0;' : ''}"></div>
-                    <img class="card-image" src="${imageUrl}" alt="${title}" loading="lazy" style="opacity: 0; transition: opacity 0.5s ease; width: 100%; height: 100%; object-fit: cover;">
+                    <div class="image-placeholder">
+                         <i class="fas fa-palette"></i>
+                    </div>
+                    <img class="card-image" src="${imageUrl}" alt="${title}" loading="lazy" style="opacity: 0; transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); width: 100%; height: 100%; object-fit: cover;">
                 </div>
                 <div class="card-content">
                     <h3 class="artwork-title" title="${title}">${title}</h3>
                     <p class="artwork-artist">${artist}</p>
                     <div class="card-footer">
-                        <span>${date}</span>
+                        <span class="artwork-date">${date}</span>
+                        <span class="view-details">Explore <i class="fas fa-arrow-right"></i></span>
                     </div>
                 </div>
             `;
             
             // Image load handler
             const img = card.querySelector('.card-image');
-            img.onload = () => {
-                img.style.opacity = '1';
-                const placeholder = card.querySelector('.image-placeholder');
-                if(placeholder) placeholder.style.opacity = '0';
-            };
+            
+            if (img.complete) {
+                handleImageLoad(img, card);
+            } else {
+                img.onload = () => handleImageLoad(img, card);
+                img.onerror = () => {
+                    // Try proxy if direct fails
+                    if (!img.dataset.triedProxy && imageUrl) {
+                        img.dataset.triedProxy = 'true';
+                        img.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
+                    } else {
+                        img.src = 'https://via.placeholder.com/400x300?text=Image+Unavailable';
+                        img.style.opacity = '1';
+                    }
+                };
+            }
 
             // Click handler for modal
             card.addEventListener('click', () => openModal(artwork));
@@ -181,49 +186,55 @@ document.addEventListener('DOMContentLoaded', () => {
         hideLoading();
     }
 
+    function handleImageLoad(img, card) {
+        img.style.opacity = '1';
+        const placeholder = card.querySelector('.image-placeholder');
+        if(placeholder) {
+            placeholder.style.opacity = '0';
+            setTimeout(() => placeholder.remove(), 800);
+        }
+    }
+
     function updatePagination(paginationInfo) {
         if (paginationInfo) {
-            pageInfo.textContent = `Page ${currentPage} of ${paginationInfo.total_pages || '?'}`;
+            const totalPages = paginationInfo.total_pages || 1;
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
             prevBtn.disabled = currentPage <= 1;
-            
-            // If we have total_pages from API, use it. Otherwise guess based on if we got full results
-            if (paginationInfo.total_pages) {
-                nextBtn.disabled = currentPage >= paginationInfo.total_pages;
-            } else {
-                nextBtn.disabled = false;
-            }
+            nextBtn.disabled = currentPage >= totalPages;
         }
     }
 
     function openModal(artwork) {
-        const imageUrl = getImageUrl(artwork.image_id, 843);
+        const imageUrl = artwork.images?.web?.url || '';
         
-        // Show loader, hide image initially
         modalLoader.style.display = 'block';
         modalImage.style.display = 'none';
         
         modalImage.src = imageUrl;
         modalTitle.textContent = artwork.title || 'Untitled';
-        modalArtist.textContent = artwork.artist_title || 'Unknown Artist';
-        modalDate.textContent = artwork.date_display || 'Unknown Date';
-        modalMedium.textContent = artwork.medium_display || 'Unknown Medium';
+        modalArtist.textContent = artwork.creators?.[0]?.description || 'Unknown Artist';
+        modalDate.textContent = artwork.creation_date || 'Unknown Date';
+        modalMedium.textContent = artwork.technique || artwork.type || 'Unknown Medium';
 
-        // Image load success handler
         modalImage.onload = () => {
             modalLoader.style.display = 'none';
             modalImage.style.display = 'block';
         };
 
-        // Error handling for modal image
         modalImage.onerror = () => {
-            console.error('Failed to load modal image:', imageUrl);
-            modalLoader.style.display = 'none';
-            modalImage.style.display = 'block';
-            modalImage.src = 'https://via.placeholder.com/800x600?text=Image+Not+Available';
+            if (!modalImage.dataset.triedProxy && imageUrl) {
+                modalImage.dataset.triedProxy = 'true';
+                modalImage.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
+            } else {
+                modalLoader.style.display = 'none';
+                modalImage.style.display = 'block';
+                modalImage.src = 'https://via.placeholder.com/800x600?text=Image+Not+Available';
+            }
         };
         
         modal.classList.add('show');
-        document.body.style.overflow = 'hidden'; // Prevent scrolling behind modal
+        delete modalImage.dataset.triedProxy;
+        document.body.style.overflow = 'hidden';
     }
 
     function closeModal() {
@@ -234,10 +245,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     }
 
-    function getImageUrl(imageId, size = 843) {
-        if (!imageId) return '';
-        // Ensure size is formatted correctly for IIIF (e.g., 843,)
-        return `${iiifBaseUrl}/${imageId}/full/${size},/0/default.jpg`;
+    // Helper to get image URL (Simplified for Cleveland)
+    function getImageUrl(artwork) {
+        return artwork.images?.web?.url || '';
     }
 
     function showLoading() {
