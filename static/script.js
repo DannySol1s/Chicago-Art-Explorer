@@ -37,10 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('downloadBtn');
     const shareBtn = document.getElementById('shareBtn');
 
+    const moodBtns = document.querySelectorAll('.mood-btn');
+    const paletteContainer = document.getElementById('paletteContainer');
+    
     // State
     let currentPage = 1;
     let currentQuery = '';
     let currentDept = '';
+    let currentMood = '';
     let showingFavorites = false;
     let favorites = JSON.parse(localStorage.getItem('art_favorites') || '[]');
     const limit = 12;
@@ -61,25 +65,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     departmentSelect.addEventListener('change', (e) => {
         currentDept = e.target.value;
-        currentPage = 1;
-        showingFavorites = false;
-        favoritesBtn.classList.remove('active');
+        resetFilters();
         fetchArtworks();
     });
 
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            filterBtns.forEach(b => b.classList.remove('active'));
+            resetFilters();
             btn.classList.add('active');
-            
             currentQuery = btn.dataset.query;
             searchInput.value = currentQuery;
-            currentPage = 1;
-            showingFavorites = false;
-            favoritesBtn.classList.remove('active');
             fetchArtworks();
         });
     });
+
+    moodBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            resetFilters();
+            btn.classList.add('active');
+            currentMood = btn.dataset.mood;
+            fetchArtworks();
+        });
+    });
+
+    function resetFilters() {
+        currentPage = 1;
+        showingFavorites = false;
+        currentMood = '';
+        currentQuery = '';
+        favoritesBtn.classList.remove('active');
+        filterBtns.forEach(b => b.classList.remove('active'));
+        moodBtns.forEach(b => b.classList.remove('active'));
+    }
 
     prevBtn.addEventListener('click', () => {
         if (currentPage > 1) {
@@ -140,10 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleSearch() {
         const query = searchInput.value.trim();
+        resetFilters();
         currentQuery = query;
-        currentPage = 1;
-        showingFavorites = false;
-        favoritesBtn.classList.remove('active');
         fetchArtworks();
     }
 
@@ -157,8 +172,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading();
         try {
             let url = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=${limit}`;
+            if (currentMood) url = `/api/mood/${currentMood}?page=${currentPage}`;
             if (currentDept) url += `&department=${encodeURIComponent(currentDept)}`;
-            if (!currentQuery && !currentDept) url = `/api/artworks?page=${currentPage}&limit=${limit}`;
+            if (!currentQuery && !currentDept && !currentMood) url = `/api/artworks?page=${currentPage}&limit=${limit}`;
 
             const response = await fetch(url);
             if (!response.ok) throw new Error('Failed to fetch data');
@@ -188,9 +204,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function toggleFavoritesView() {
-        showingFavorites = !showingFavorites;
+        const wasShowing = showingFavorites;
+        resetFilters();
+        showingFavorites = !wasShowing;
         favoritesBtn.classList.toggle('active', showingFavorites);
-        currentPage = 1;
         fetchArtworks();
     }
 
@@ -203,10 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         localStorage.setItem('art_favorites', JSON.stringify(favorites));
         
-        // If we are in favorites view, refresh the gallery
         if (showingFavorites) fetchArtworks();
         
-        // Update any existing cards in the gallery
         const cardBtn = document.querySelector(`.fav-card-btn[data-id="${artwork.id}"]`);
         if (cardBtn) cardBtn.classList.toggle('active', index === -1);
     }
@@ -257,12 +272,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.classList.add('loaded');
             };
             img.onerror = () => {
-                // Si falla la carga directa, intentamos por el proxy
                 if (!img.dataset.triedProxy) {
                     img.dataset.triedProxy = 'true';
                     img.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
                 } else {
-                    // Si el proxy también falla, mostramos un placeholder elegante
                     img.src = 'https://via.placeholder.com/400x500?text=Arte+no+disponible';
                     img.style.opacity = '1';
                 }
@@ -286,7 +299,6 @@ document.addEventListener('DOMContentLoaded', () => {
             prevBtn.disabled = currentPage <= 1;
             nextBtn.disabled = currentPage >= totalPages;
             
-            // Hide pagination if in favorites view or total pages is 1
             const paginationEl = document.querySelector('.pagination');
             paginationEl.style.display = (showingFavorites || totalPages <= 1) ? 'none' : 'flex';
         }
@@ -296,6 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const imageUrl = artwork.images?.web?.url || '';
         modalLoader.style.display = 'block';
         modalImage.style.display = 'none';
+        paletteContainer.innerHTML = '<p class="loading-palette">Analyzing colors...</p>';
         
         modalImage.src = imageUrl;
         modalTitle.textContent = artwork.title || 'Untitled';
@@ -312,21 +325,52 @@ document.addEventListener('DOMContentLoaded', () => {
         modalImage.onload = () => {
             modalLoader.style.display = 'none';
             modalImage.style.display = 'block';
+            fetchPalette(imageUrl);
         };
 
         modal.classList.add('show');
         document.body.style.overflow = 'hidden';
     }
 
+    async function fetchPalette(url) {
+        try {
+            const response = await fetch(`/api/palette?image_url=${encodeURIComponent(url)}`);
+            if (response.ok) {
+                const palette = await response.json();
+                displayPalette(palette);
+            } else {
+                paletteContainer.innerHTML = '<p>Palette analysis failed.</p>';
+            }
+        } catch (error) {
+            console.error('Error fetching palette:', error);
+            paletteContainer.innerHTML = '';
+        }
+    }
+
+    function displayPalette(palette) {
+        paletteContainer.innerHTML = '';
+        palette.forEach(color => {
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch';
+            swatch.style.backgroundColor = color.hex;
+            swatch.style.flex = `1 1 ${color.pixel_share}%`;
+            swatch.title = `${color.hex} (${color.pixel_share}%)`;
+            swatch.textContent = color.hex;
+            
+            swatch.addEventListener('click', () => {
+                navigator.clipboard.writeText(color.hex);
+                const originalText = swatch.textContent;
+                swatch.textContent = 'Copied!';
+                setTimeout(() => swatch.textContent = originalText, 1000);
+            });
+            
+            paletteContainer.appendChild(swatch);
+        });
+    }
+
     function updateModalFavIcon(id) {
         const icon = modalFavBtn.querySelector('i');
-        if (isFavorite(id)) {
-            icon.className = 'fas fa-heart';
-            modalFavBtn.style.color = '#fb7185';
-        } else {
-            icon.className = 'far fa-heart';
-            modalFavBtn.style.color = '#fb7185';
-        }
+        icon.className = isFavorite(id) ? 'fas fa-heart' : 'far fa-heart';
     }
 
     function closeModal() {
