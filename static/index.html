@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chicago Art Explorer</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <h1>Chicago Art Explorer</h1>
+                <p>Discover masterpieces from the Art Institute of Chicago</p>
+            </div>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search for artists, titles, or 'cats'...">
+                <button id="searchBtn"><i class="fas fa-search"></i></button>
+            </div>
+        </header>
+
+        <main>
+            <div class="filters">
+                <button class="filter-btn active" data-query="">All Artworks</button>
+                <button class="filter-btn" data-query="cats">Cats</button>
+                <button class="filter-btn" data-query="impressionism">Impressionism</button>
+                <button class="filter-btn" data-query="picasso">Picasso</button>
+                <button class="filter-btn" data-query="vangogh">Van Gogh</button>
+            </div>
+
+            <div id="loading" class="loader-container">
+                <div class="loader"></div>
+                <p>Loading masterpieces...</p>
+            </div>
+
+            <div id="gallery" class="gallery hidden">
+                <!-- Artwork cards will be injected here -->
+            </div>
+
+            <div id="no-results" class="hidden message">
+                <i class="fas fa-search-minus"></i>
+                <p>No artworks found. Try another search.</p>
+            </div>
+
+            <div class="pagination">
+                <button id="prevBtn" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+                <span id="pageInfo">Page 1</span>
+                <button id="nextBtn">Next <i class="fas fa-chevron-right"></i></button>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Data provided by the <a href="https://api.artic.edu/docs/" target="_blank">Art Institute of Chicago API</a></p>
+        </footer>
+    </div>
+
+    <!-- Modal for viewing artwork details -->
+    <div id="artworkModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div class="modal-body">
+                <div class="modal-image-container">
+                    <img id="modalImage" src="" alt="Artwork">
+                </div>
+                <div class="modal-info">
+                    <h2 id="modalTitle">Title</h2>
+                    <h3 id="modalArtist">Artist</h3>
+                    <div class="details-grid">
+                        <div class="detail-item">
+                            <span class="label">Date</span>
+                            <span class="value" id="modalDate"></span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Medium</span>
+                            <span class="value" id="modalMedium"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
