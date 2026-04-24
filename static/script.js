@@ -18,10 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalArtist = document.getElementById('modalArtist');
     const modalDate = document.getElementById('modalDate');
     const modalMedium = document.getElementById('modalMedium');
+    const modalLoader = document.getElementById('modalLoader');
 
     // State
     let currentPage = 1;
     let currentQuery = '';
+    let iiifBaseUrl = 'https://www.artic.edu/iiif/2'; // Default fallback
     const limit = 12;
 
     // Initialize
@@ -108,6 +110,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
+            
+            // Update IIIF base URL from config if available
+            if (data.config && data.config.iiif_url) {
+                iiifBaseUrl = data.config.iiif_url;
+            }
+
             displayArtworks(data.data);
             updatePagination(data.pagination);
             
@@ -190,11 +198,29 @@ document.addEventListener('DOMContentLoaded', () => {
     function openModal(artwork) {
         const imageUrl = getImageUrl(artwork.image_id, 843);
         
+        // Show loader, hide image initially
+        modalLoader.style.display = 'block';
+        modalImage.style.display = 'none';
+        
         modalImage.src = imageUrl;
         modalTitle.textContent = artwork.title || 'Untitled';
         modalArtist.textContent = artwork.artist_title || 'Unknown Artist';
         modalDate.textContent = artwork.date_display || 'Unknown Date';
         modalMedium.textContent = artwork.medium_display || 'Unknown Medium';
+
+        // Image load success handler
+        modalImage.onload = () => {
+            modalLoader.style.display = 'none';
+            modalImage.style.display = 'block';
+        };
+
+        // Error handling for modal image
+        modalImage.onerror = () => {
+            console.error('Failed to load modal image:', imageUrl);
+            modalLoader.style.display = 'none';
+            modalImage.style.display = 'block';
+            modalImage.src = 'https://via.placeholder.com/800x600?text=Image+Not+Available';
+        };
         
         modal.classList.add('show');
         document.body.style.overflow = 'hidden'; // Prevent scrolling behind modal
@@ -209,7 +235,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getImageUrl(imageId, size = 843) {
-        return `https://www.artic.edu/iiif/2/${imageId}/full/${size},/0/default.jpg`;
+        if (!imageId) return '';
+        // Ensure size is formatted correctly for IIIF (e.g., 843,)
+        return `${iiifBaseUrl}/${imageId}/full/${size},/0/default.jpg`;
     }
 
     function showLoading() {
