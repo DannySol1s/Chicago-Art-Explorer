@@ -1,16 +1,26 @@
-from fastapi import FastAPI, HTTPException, Response, Query
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 import httpx
 import os
 import time
-from typing import Optional
+import io
+import extcolors
+from PIL import Image
+from typing import Optional, List
 
-app = FastAPI(title="Cleveland Art Explorer")
+app = FastAPI(title="The Palette Mind API")
+
+# Mapeo de estados de ánimo a palabras clave de búsqueda
+MOOD_MAP = {
+    "melancolía": "sadness, blue, lonely, autumn",
+    "energía": "vibrant, action, bright, fire",
+    "calma": "peaceful, ocean, forest, clouds",
+    "misterio": "night, shadow, gothic, hidden",
+    "alegría": "flowers, sunlight, party, yellow",
+    "pasión": "red, love, dramatic, intense"
+}
 
 # Simple in-memory cache
 cache = {}
-CACHE_TTL = 300 # 5 minutes
+CACHE_TTL = 3600 # 1 hora para resultados de paleta
 
 def get_from_cache(key):
     if key in cache:
@@ -22,6 +32,31 @@ def get_from_cache(key):
 
 def set_to_cache(key, value):
     cache[key] = (value, time.time())
+
+# Función para extraer paleta de colores de una URL
+async def extract_palette_from_url(image_url: str):
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(image_url)
+            if response.status_code == 200:
+                img = Image.open(io.BytesIO(response.content))
+                # Redimensionar para procesar más rápido
+                img.thumbnail((300, 300))
+                colors, pixel_count = extcolors.extract_from_image(img, tolerance=12, limit=5)
+                
+                palette = []
+                for color in colors:
+                    rgb = color[0]
+                    hex_color = '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
+                    palette.append({
+                        "hex": hex_color,
+                        "rgb": rgb,
+                        "pixel_share": round((color[1] / pixel_count) * 100, 2)
+                    })
+                return palette
+        except Exception as e:
+            print(f"Error extrayendo paleta: {e}")
+    return []
 
 # Serve the main HTML file at the root
 @app.get("/")
@@ -110,9 +145,26 @@ async def search_artworks(q: str = "", department: Optional[str] = None, page: i
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/mood/{mood}")
+async def get_art_by_mood(mood: str, page: int = 1):
+    if mood not in MOOD_MAP:
+        raise HTTPException(status_code=404, detail="Estado de ánimo no soportado")
+    
+    query = MOOD_MAP[mood]
+    return await search_artworks(q=query, page=page)
+
+@app.get("/api/palette")
+async def get_palette(image_url: str):
+    cache_key = f"palette_{image_url}"
+    cached = get_from_cache(cache_key)
+    if cached: return cached
+    
+    palette = await extract_palette_from_url(image_url)
+    set_to_cache(cache_key, palette)
+    return palette
+
 @app.get("/api/random")
 async def get_random_artwork():
-    # Cleveland doesn't have a direct random endpoint, so we get a random page from a large set
     import random
     random_skip = random.randint(0, 1000)
     url = f"https://openaccess-api.clevelandart.org/api/artworks/?skip={random_skip}&limit=1&has_image=1"
