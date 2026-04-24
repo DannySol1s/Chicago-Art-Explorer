@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const filterBtns = document.querySelectorAll('.filter-btn');
+    const departmentSelect = document.getElementById('departmentSelect');
+    const randomBtn = document.getElementById('randomBtn');
+    const favoritesBtn = document.getElementById('favoritesBtn');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     const pageInfo = document.getElementById('pageInfo');
@@ -18,14 +21,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalArtist = document.getElementById('modalArtist');
     const modalDate = document.getElementById('modalDate');
     const modalMedium = document.getElementById('modalMedium');
+    const modalDept = document.getElementById('modalDept');
+    const modalDesc = document.getElementById('modalDesc');
     const modalLoader = document.getElementById('modalLoader');
+    const modalFavBtn = document.getElementById('modalFavBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const shareBtn = document.getElementById('shareBtn');
 
     // State
     let currentPage = 1;
     let currentQuery = '';
+    let currentDept = '';
+    let showingFavorites = false;
+    let favorites = JSON.parse(localStorage.getItem('art_favorites') || '[]');
     const limit = 12;
 
     // Initialize
+    fetchDepartments();
     fetchArtworks();
 
     // Event Listeners
@@ -34,16 +46,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') handleSearch();
     });
 
+    randomBtn.addEventListener('click', fetchRandomArtwork);
+    
+    favoritesBtn.addEventListener('click', toggleFavoritesView);
+
+    departmentSelect.addEventListener('change', (e) => {
+        currentDept = e.target.value;
+        currentPage = 1;
+        showingFavorites = false;
+        favoritesBtn.classList.remove('active');
+        fetchArtworks();
+    });
+
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            // Update active state
             filterBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            // Set query and fetch
             currentQuery = btn.dataset.query;
             searchInput.value = currentQuery;
             currentPage = 1;
+            showingFavorites = false;
+            favoritesBtn.classList.remove('active');
             fetchArtworks();
         });
     });
@@ -67,68 +91,129 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
     });
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.classList.contains('show')) {
-            closeModal();
+    
+    modalFavBtn.addEventListener('click', () => {
+        const artwork = modalFavBtn.dataset.artwork ? JSON.parse(modalFavBtn.dataset.artwork) : null;
+        if (artwork) {
+            toggleFavorite(artwork);
+            updateModalFavIcon(artwork.id);
+        }
+    });
+
+    shareBtn.addEventListener('click', () => {
+        const title = modalTitle.textContent;
+        const text = `Check out this masterpiece: ${title}`;
+        if (navigator.share) {
+            navigator.share({ title, text, url: window.location.href });
+        } else {
+            navigator.clipboard.writeText(`${text} - ${window.location.href}`);
+            alert('Link copied to clipboard!');
         }
     });
 
     // Functions
-    function handleSearch() {
-        const query = searchInput.value.trim();
-        if (query !== currentQuery || currentPage !== 1) {
-            currentQuery = query;
-            currentPage = 1;
-            
-            // Update filter buttons if search matches a predefined filter
-            filterBtns.forEach(b => {
-                if (b.dataset.query.toLowerCase() === currentQuery.toLowerCase()) {
-                    b.classList.add('active');
-                } else {
-                    b.classList.remove('active');
-                }
-            });
-            
-            fetchArtworks();
+    async function fetchDepartments() {
+        try {
+            const response = await fetch('/api/departments');
+            if (response.ok) {
+                const depts = await response.json();
+                depts.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept.name;
+                    option.textContent = dept.name;
+                    departmentSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching departments:', error);
         }
     }
 
+    function handleSearch() {
+        const query = searchInput.value.trim();
+        currentQuery = query;
+        currentPage = 1;
+        showingFavorites = false;
+        favoritesBtn.classList.remove('active');
+        fetchArtworks();
+    }
+
     async function fetchArtworks() {
+        if (showingFavorites) {
+            displayArtworks(favorites);
+            updatePagination({ total_pages: 1, current_page: 1 });
+            return;
+        }
+
         showLoading();
-        
         try {
-            let url = `/api/artworks?page=${currentPage}&limit=${limit}`;
-            if (currentQuery) {
-                url = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=${limit}`;
-            }
+            let url = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=${limit}`;
+            if (currentDept) url += `&department=${encodeURIComponent(currentDept)}`;
+            if (!currentQuery && !currentDept) url = `/api/artworks?page=${currentPage}&limit=${limit}`;
 
             const response = await fetch(url);
-            
-            if (!response.ok) {
-                throw new Error('Failed to fetch data');
-            }
-
+            if (!response.ok) throw new Error('Failed to fetch data');
             const data = await response.json();
             
             displayArtworks(data.data);
             updatePagination(data.pagination);
-            
         } catch (error) {
             console.error('Error fetching artworks:', error);
             showNoResults();
         }
     }
 
+    async function fetchRandomArtwork() {
+        showLoading();
+        try {
+            const response = await fetch('/api/random');
+            if (response.ok) {
+                const artwork = await response.json();
+                openModal(artwork);
+                hideLoading();
+            }
+        } catch (error) {
+            console.error('Error fetching random artwork:', error);
+            fetchArtworks(); // Fallback to list
+        }
+    }
+
+    function toggleFavoritesView() {
+        showingFavorites = !showingFavorites;
+        favoritesBtn.classList.toggle('active', showingFavorites);
+        currentPage = 1;
+        fetchArtworks();
+    }
+
+    function toggleFavorite(artwork) {
+        const index = favorites.findIndex(f => f.id === artwork.id);
+        if (index > -1) {
+            favorites.splice(index, 1);
+        } else {
+            favorites.push(artwork);
+        }
+        localStorage.setItem('art_favorites', JSON.stringify(favorites));
+        
+        // If we are in favorites view, refresh the gallery
+        if (showingFavorites) fetchArtworks();
+        
+        // Update any existing cards in the gallery
+        const cardBtn = document.querySelector(`.fav-card-btn[data-id="${artwork.id}"]`);
+        if (cardBtn) cardBtn.classList.toggle('active', index === -1);
+    }
+
+    function isFavorite(id) {
+        return favorites.some(f => f.id === id);
+    }
+
     function displayArtworks(artworks) {
         gallery.innerHTML = '';
-        
         if (!artworks || artworks.length === 0) {
             showNoResults();
             return;
         }
 
         artworks.forEach((artwork, index) => {
-            // Skip artworks without images for better UX
             const imageUrl = artwork.images?.web?.url || '';
             if (!imageUrl) return;
 
@@ -139,60 +224,39 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = artwork.title || 'Untitled';
             const artist = artwork.creators?.[0]?.description || 'Unknown Artist';
             const date = artwork.creation_date || 'Unknown Date';
-            
-            const bgStyle = ''; 
+            const favClass = isFavorite(artwork.id) ? 'active' : '';
+
             card.innerHTML = `
-                <div class="image-wrapper" style="${bgStyle}">
-                    <div class="image-placeholder">
-                         <i class="fas fa-palette"></i>
-                    </div>
-                    <img class="card-image" src="${imageUrl}" alt="${title}" loading="lazy" style="opacity: 0; transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1); width: 100%; height: 100%; object-fit: cover;">
+                <div class="image-wrapper">
+                    <button class="fav-card-btn ${favClass}" data-id="${artwork.id}" title="Toggle Favorite">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                    <img class="card-image" src="${imageUrl}" alt="${title}" loading="lazy" style="opacity: 0; transition: opacity 0.8s ease;">
                 </div>
                 <div class="card-content">
                     <h3 class="artwork-title" title="${title}">${title}</h3>
                     <p class="artwork-artist">${artist}</p>
                     <div class="card-footer">
                         <span class="artwork-date">${date}</span>
-                        <span class="view-details">Explore <i class="fas fa-arrow-right"></i></span>
                     </div>
                 </div>
             `;
             
-            // Image load handler
             const img = card.querySelector('.card-image');
-            
-            if (img.complete) {
-                handleImageLoad(img, card);
-            } else {
-                img.onload = () => handleImageLoad(img, card);
-                img.onerror = () => {
-                    // Try proxy if direct fails
-                    if (!img.dataset.triedProxy && imageUrl) {
-                        img.dataset.triedProxy = 'true';
-                        img.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
-                    } else {
-                        img.src = 'https://via.placeholder.com/400x300?text=Image+Unavailable';
-                        img.style.opacity = '1';
-                    }
-                };
-            }
+            img.onload = () => img.style.opacity = '1';
+            img.onerror = () => {
+                img.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
+            };
 
-            // Click handler for modal
+            card.querySelector('.fav-card-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleFavorite(artwork);
+            });
+
             card.addEventListener('click', () => openModal(artwork));
-            
             gallery.appendChild(card);
         });
-
         hideLoading();
-    }
-
-    function handleImageLoad(img, card) {
-        img.style.opacity = '1';
-        const placeholder = card.querySelector('.image-placeholder');
-        if(placeholder) {
-            placeholder.style.opacity = '0';
-            setTimeout(() => placeholder.remove(), 800);
-        }
     }
 
     function updatePagination(paginationInfo) {
@@ -201,12 +265,15 @@ document.addEventListener('DOMContentLoaded', () => {
             pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
             prevBtn.disabled = currentPage <= 1;
             nextBtn.disabled = currentPage >= totalPages;
+            
+            // Hide pagination if in favorites view or total pages is 1
+            const paginationEl = document.querySelector('.pagination');
+            paginationEl.style.display = (showingFavorites || totalPages <= 1) ? 'none' : 'flex';
         }
     }
 
     function openModal(artwork) {
         const imageUrl = artwork.images?.web?.url || '';
-        
         modalLoader.style.display = 'block';
         modalImage.style.display = 'none';
         
@@ -215,39 +282,36 @@ document.addEventListener('DOMContentLoaded', () => {
         modalArtist.textContent = artwork.creators?.[0]?.description || 'Unknown Artist';
         modalDate.textContent = artwork.creation_date || 'Unknown Date';
         modalMedium.textContent = artwork.technique || artwork.type || 'Unknown Medium';
+        modalDept.textContent = artwork.department || 'Not Specified';
+        modalDesc.textContent = artwork.wall_description || artwork.description || 'No detailed description available for this piece.';
+        
+        downloadBtn.href = artwork.images?.print?.url || artwork.images?.web?.url || '#';
+        modalFavBtn.dataset.artwork = JSON.stringify(artwork);
+        updateModalFavIcon(artwork.id);
 
         modalImage.onload = () => {
             modalLoader.style.display = 'none';
             modalImage.style.display = 'block';
         };
 
-        modalImage.onerror = () => {
-            if (!modalImage.dataset.triedProxy && imageUrl) {
-                modalImage.dataset.triedProxy = 'true';
-                modalImage.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
-            } else {
-                modalLoader.style.display = 'none';
-                modalImage.style.display = 'block';
-                modalImage.src = 'https://via.placeholder.com/800x600?text=Image+Not+Available';
-            }
-        };
-        
         modal.classList.add('show');
-        delete modalImage.dataset.triedProxy;
         document.body.style.overflow = 'hidden';
+    }
+
+    function updateModalFavIcon(id) {
+        const icon = modalFavBtn.querySelector('i');
+        if (isFavorite(id)) {
+            icon.className = 'fas fa-heart';
+            modalFavBtn.style.color = '#fb7185';
+        } else {
+            icon.className = 'far fa-heart';
+            modalFavBtn.style.color = '#fb7185';
+        }
     }
 
     function closeModal() {
         modal.classList.remove('show');
         document.body.style.overflow = '';
-        setTimeout(() => {
-            modalImage.src = ''; // Clear image to prevent flash on next open
-        }, 300);
-    }
-
-    // Helper to get image URL (Simplified for Cleveland)
-    function getImageUrl(artwork) {
-        return artwork.images?.web?.url || '';
     }
 
     function showLoading() {
