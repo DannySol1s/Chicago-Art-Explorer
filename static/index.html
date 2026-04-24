@@ -3,79 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chicago Art Explorer</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    <meta name="description" content="Explore and discover masterpieces from the world's leading museums. A premium digital art gallery experience.">
+    <meta name="keywords" content="Art, Museum, Gallery, Paintings, Masterpieces, Open Access">
+    <title>Universal Art Explorer | Discover Museum Masterpieces</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-container">
         <header>
             <div class="logo">
-                <h1>Chicago Art Explorer</h1>
-                <p>Discover masterpieces from the Art Institute of Chicago</p>
+                <h1>Universal Art Explorer</h1>
+                <p>Discover timeless masterpieces and hidden gems from world-renowned museum collections.</p>
             </div>
+            
             <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Search for artists, titles, or 'cats'...">
-                <button id="searchBtn"><i class="fas fa-search"></i></button>
+                <input type="text" id="searchInput" placeholder="Search by title, artist, or style..." autocomplete="off">
+                <button id="searchBtn" aria-label="Search">
+                    <i class="fas fa-search"></i>
+                </button>
             </div>
         </header>
 
         <main>
-            <div class="filters">
-                <button class="filter-btn active" data-query="">All Artworks</button>
-                <button class="filter-btn" data-query="cats">Cats</button>
-                <button class="filter-btn" data-query="impressionism">Impressionism</button>
-                <button class="filter-btn" data-query="picasso">Picasso</button>
-                <button class="filter-btn" data-query="vangogh">Van Gogh</button>
-            </div>
+            <nav class="filters" aria-label="Artwork filters">
+                <button class="filter-btn active" data-query="" id="filter-all">Collection</button>
+                <button class="filter-btn" data-query="impressionism" id="filter-impressionism">Impressionism</button>
+                <button class="filter-btn" data-query="cats" id="filter-cats">Cats in Art</button>
+                <button class="filter-btn" data-query="picasso" id="filter-picasso">Picasso</button>
+                <button class="filter-btn" data-query="surrealism" id="filter-surrealism">Surrealism</button>
+                <button class="filter-btn" data-query="modern art" id="filter-modern">Modern Art</button>
+            </nav>
 
-            <div id="loading" class="loader-container">
+            <section id="loading" class="loader-container">
                 <div class="loader"></div>
-                <p>Loading masterpieces...</p>
-            </div>
+                <p>Curating your gallery...</p>
+            </section>
 
-            <div id="gallery" class="gallery hidden">
+            <section id="gallery" class="gallery hidden">
                 <!-- Artwork cards will be injected here -->
-            </div>
+            </section>
 
-            <div id="no-results" class="hidden message">
+            <section id="no-results" class="hidden message">
                 <i class="fas fa-search-minus"></i>
-                <p>No artworks found. Try another search.</p>
-            </div>
+                <h2>No masterpieces found</h2>
+                <p>Try adjusting your search terms or exploring a different category.</p>
+            </section>
 
-            <div class="pagination">
-                <button id="prevBtn" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+            <nav class="pagination" aria-label="Pagination">
+                <button id="prevBtn" disabled title="Previous Page">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
                 <span id="pageInfo">Page 1</span>
-                <button id="nextBtn">Next <i class="fas fa-chevron-right"></i></button>
-            </div>
+                <button id="nextBtn" title="Next Page">
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </nav>
         </main>
         
         <footer>
-            <p>Data provided by the <a href="https://api.artic.edu/docs/" target="_blank">Art Institute of Chicago API</a></p>
+            <div class="footer-content">
+                <p>Data provided by the <a href="https://openaccess-api.clevelandart.org/" target="_blank" rel="noopener">Cleveland Museum of Art API</a></p>
+                <p class="copyright">&copy; 2026 Universal Art Explorer. Designed for Art Lovers.</p>
+            </div>
         </footer>
     </div>
 
     <!-- Modal for viewing artwork details -->
-    <div id="artworkModal" class="modal">
+    <div id="artworkModal" class="modal" aria-hidden="true" role="dialog">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
+            <span class="close-btn" aria-label="Close modal">&times;</span>
             <div class="modal-body">
                 <div class="modal-image-container">
                     <div id="modalLoader" class="loader"></div>
-                    <img id="modalImage" src="" alt="Artwork" style="display: none;">
+                    <img id="modalImage" src="" alt="Artwork detail" style="display: none;">
                 </div>
                 <div class="modal-info">
-                    <h2 id="modalTitle">Title</h2>
-                    <h3 id="modalArtist">Artist</h3>
+                    <h2 id="modalTitle">Artwork Title</h2>
+                    <h3 id="modalArtist">Artist Name</h3>
+                    
                     <div class="details-grid">
                         <div class="detail-item">
-                            <span class="label">Date</span>
-                            <span class="value" id="modalDate"></span>
+                            <span class="label">Creation Date</span>
+                            <span class="value" id="modalDate">c. 1880</span>
                         </div>
                         <div class="detail-item">
                             <span class="label">Medium</span>
-                            <span class="value" id="modalMedium"></span>
+                            <span class="value" id="modalMedium">Oil on canvas</span>
                         </div>
                     </div>
                 </div>
