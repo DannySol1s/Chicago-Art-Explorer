@@ -1,19 +1,57 @@
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import httpx
 import os
+import time
+from typing import Optional
 
-app = FastAPI(title="Chicago Art API")
+app = FastAPI(title="Cleveland Art Explorer")
+
+# Simple in-memory cache
+cache = {}
+CACHE_TTL = 300 # 5 minutes
+
+def get_from_cache(key):
+    if key in cache:
+        item, timestamp = cache[key]
+        if time.time() - timestamp < CACHE_TTL:
+            return item
+        del cache[key]
+    return None
+
+def set_to_cache(key, value):
+    cache[key] = (value, time.time())
 
 # Serve the main HTML file at the root
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
 
-# Proxy endpoints for the Cleveland Museum of Art API
+@app.get("/api/departments")
+async def get_departments():
+    cache_key = "departments"
+    cached = get_from_cache(cache_key)
+    if cached: return cached
+
+    url = "https://openaccess-api.clevelandart.org/api/departments/"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            response = await client.get(url)
+            if response.status_code == 200:
+                data = response.json()["data"]
+                set_to_cache(cache_key, data)
+                return data
+            raise HTTPException(status_code=response.status_code, detail="Failed to fetch departments")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/artworks")
 async def get_artworks(page: int = 1, limit: int = 12):
+    cache_key = f"artworks_p{page}_l{limit}"
+    cached = get_from_cache(cache_key)
+    if cached: return cached
+
     skip = (page - 1) * limit
     url = f"https://openaccess-api.clevelandart.org/api/artworks/?skip={skip}&limit={limit}&has_image=1"
     async with httpx.AsyncClient(timeout=15.0) as client:
@@ -21,40 +59,65 @@ async def get_artworks(page: int = 1, limit: int = 12):
             response = await client.get(url)
             if response.status_code == 200:
                 data = response.json()
-                # Map Cleveland structure to a simpler internal format if desired, 
-                # or just return as is and handle in JS. Let's return a consistent structure.
-                return {
+                result = {
                     "data": data["data"],
                     "pagination": {
                         "total_pages": (data["info"]["total"] // limit) + 1,
                         "current_page": page
                     }
                 }
-            raise HTTPException(status_code=response.status_code, detail="Failed to fetch data from Cleveland Museum")
+                set_to_cache(cache_key, result)
+                return result
+            raise HTTPException(status_code=response.status_code, detail="Failed to fetch data")
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/search")
-async def search_artworks(q: str, page: int = 1, limit: int = 12):
+async def search_artworks(q: str = "", department: Optional[str] = None, page: int = 1, limit: int = 12):
+    cache_key = f"search_{q}_{department}_p{page}"
+    cached = get_from_cache(cache_key)
+    if cached: return cached
+
     skip = (page - 1) * limit
     url = f"https://openaccess-api.clevelandart.org/api/artworks/?q={q}&skip={skip}&limit={limit}&has_image=1"
+    if department:
+        url += f"&department={department}"
+        
     async with httpx.AsyncClient(timeout=15.0) as client:
         try:
             response = await client.get(url)
             if response.status_code == 200:
                 data = response.json()
-                return {
+                result = {
                     "data": data["data"],
                     "pagination": {
                         "total_pages": (data["info"]["total"] // limit) + 1,
                         "current_page": page
                     }
                 }
+                set_to_cache(cache_key, result)
+                return result
             raise HTTPException(status_code=response.status_code, detail="Failed to search artworks")
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-# Simplified image proxy for Cleveland (usually not needed, but good for CORS insurance)
+@app.get("/api/random")
+async def get_random_artwork():
+    # Cleveland doesn't have a direct random endpoint, so we get a random page from a large set
+    import random
+    random_skip = random.randint(0, 1000)
+    url = f"https://openaccess-api.clevelandart.org/api/artworks/?skip={random_skip}&limit=1&has_image=1"
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        try:
+            response = await client.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if data["data"]:
+                    return data["data"][0]
+            raise HTTPException(status_code=404, detail="Random artwork not found")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/image/proxy")
 async def image_proxy(url: str):
     if not url.startswith("https://openaccess-cdn.clevelandart.org/"):
@@ -73,7 +136,6 @@ async def image_proxy(url: str):
         except Exception as e:
             return Response(status_code=500)
 
-# Make sure static directory exists
 os.makedirs("static", exist_ok=True)
 app.mount("/", StaticFiles(directory="static"), name="static")
 
