@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalDate = document.getElementById('modalDate');
     const modalMedium = document.getElementById('modalMedium');
     const closeBtn = document.querySelector('.close-btn');
-    const translateBtn = document.getElementById('translateBtn');
 
     // Estado
     let currentPage = 1;
@@ -60,48 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
     closeBtn.addEventListener('click', () => modal.classList.remove('show'));
     window.addEventListener('click', (e) => {
         if (e.target === modal) modal.classList.remove('show');
-    });
-
-    translateBtn.addEventListener('click', async () => {
-        if (!currentArtwork || translateBtn.classList.contains('loading')) return;
-
-        translateBtn.classList.add('loading');
-        translateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traduciendo...';
-
-        try {
-            // Traducir campos clave
-            const fieldsToTranslate = [
-                { id: 'title', value: currentArtwork.title },
-                { id: 'desc', value: currentArtwork.wall_description || currentArtwork.description },
-                { id: 'technique', value: currentArtwork.technique },
-                { id: 'artist', value: currentArtwork.creators?.[0]?.description }
-            ];
-
-            const results = await Promise.all(fieldsToTranslate.map(async (field) => {
-                if (!field.value) return { id: field.id, translated: '' };
-                const response = await fetch(`/api/translate?text=${encodeURIComponent(field.value)}`);
-                const data = await response.json();
-                return { id: field.id, translated: data.translated };
-            }));
-
-            // Actualizar UI
-            results.forEach(res => {
-                if (res.id === 'title' && res.translated) modalTitle.textContent = res.translated;
-                if (res.id === 'desc' && res.translated) modalDesc.innerHTML = formatDescription(res.translated);
-                if (res.id === 'technique' && res.translated) modalMedium.textContent = `Técnica: ${res.translated}`;
-                if (res.id === 'artist' && res.translated) modalArtist.textContent = res.translated;
-            });
-
-            translateBtn.innerHTML = '<i class="fas fa-check"></i> Traducido';
-            translateBtn.style.background = '#22c55e';
-            translateBtn.style.borderColor = '#22c55e';
-            translateBtn.style.color = 'white';
-        } catch (error) {
-            console.error('Error al traducir:', error);
-            translateBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
-        } finally {
-            translateBtn.classList.remove('loading');
-        }
     });
 
     // Funciones
@@ -190,11 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function openModal(artwork) {
         currentArtwork = artwork;
         
-        // Reset botón traducción
-        translateBtn.innerHTML = '<i class="fas fa-language"></i> Traducir';
-        translateBtn.style = "";
-        translateBtn.classList.remove('loading');
-
         modalImage.src = artwork.images?.web?.url || '';
         modalTitle.textContent = artwork.title || 'Sin título';
         modalArtist.textContent = artwork.creators?.[0]?.description || 'Artista desconocido';
