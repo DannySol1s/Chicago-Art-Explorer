@@ -251,9 +251,18 @@ header {
     padding: 2rem;
 }
 
+.modal-image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
 .modal-image-container img {
-    width: 100%;
+    max-width: 100%;
+    max-height: 80vh;
     border-radius: 12px;
+    object-fit: contain;
 }
 
 .modal-info h2 {
