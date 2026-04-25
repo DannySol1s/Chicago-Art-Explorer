@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     const pageInfo = document.getElementById('pageInfo');
-    
+
     const modal = document.getElementById('artModal');
     const modalImage = document.getElementById('modalImage');
     const modalTitle = document.getElementById('modalTitle');
@@ -64,13 +64,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchArtworks() {
         showLoading();
         try {
-            const url = currentQuery 
+            const url = currentQuery
                 ? `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=${limit}`
                 : `/api/artworks?page=${currentPage}&limit=${limit}`;
 
             const response = await fetch(url);
             const data = await response.json();
-            
+
             displayArtworks(data.data);
             updatePagination(data.pagination);
         } catch (error) {
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="artwork-artist">${artwork.creators?.[0]?.description || 'Artista desconocido'}</p>
                 </div>
             `;
-            
+
             const img = card.querySelector('img');
             img.onerror = () => {
                 img.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalDesc.textContent = artwork.wall_description || artwork.description || 'Sin descripción disponible.';
         modalDate.textContent = `Fecha: ${artwork.creation_date || 'Desconocida'}`;
         modalMedium.textContent = `Técnica: ${artwork.technique || 'Desconocida'}`;
-        
+
         modal.classList.add('show');
     }
 
