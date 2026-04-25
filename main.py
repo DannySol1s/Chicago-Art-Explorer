@@ -4,7 +4,9 @@ from fastapi.responses import FileResponse
 import httpx
 import os
 import time
-from typing import Optional
+import asyncio
+from typing import Optional, List
+from deep_translator import GoogleTranslator
 
 app = FastAPI(title="Art Explorer Simplificado")
 
@@ -23,6 +25,46 @@ def get_from_cache(key):
 def set_to_cache(key, value):
     cache[key] = (value, time.time())
 
+translator = GoogleTranslator(source='en', target='es')
+
+async def translate_text(text: str) -> str:
+    if not text or len(text) < 3:
+        return text
+    try:
+        # Ejecutar la traducción en un hilo para no bloquear el bucle de eventos
+        loop = asyncio.get_event_loop()
+        translated = await loop.run_in_executor(None, translator.translate, text)
+        return translated
+    except Exception as e:
+        print(f"Error de traducción: {e}")
+        return text
+
+async def translate_artwork(artwork: dict) -> dict:
+    # Traducir título
+    if artwork.get("title"):
+        artwork["title"] = await translate_text(artwork["title"])
+    
+    # Traducir descripción
+    desc = artwork.get("wall_description") or artwork.get("description")
+    if desc:
+        translated_desc = await translate_text(desc)
+        if artwork.get("wall_description"):
+            artwork["wall_description"] = translated_desc
+        else:
+            artwork["description"] = translated_desc
+            
+    # Traducir técnica
+    if artwork.get("technique"):
+        artwork["technique"] = await translate_text(artwork["technique"])
+        
+    # Traducir información del creador (opcional, pero ayuda)
+    if artwork.get("creators") and len(artwork["creators"]) > 0:
+        creator = artwork["creators"][0]
+        if creator.get("description"):
+            creator["description"] = await translate_text(creator["description"])
+            
+    return artwork
+
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
@@ -40,8 +82,14 @@ async def get_artworks(page: int = 1, limit: int = 12):
             response = await client.get(url)
             if response.status_code == 200:
                 data = response.json()
+                
+                # Traducir las obras de arte en paralelo
+                artworks = data["data"]
+                tasks = [translate_artwork(art) for art in artworks]
+                translated_artworks = await asyncio.gather(*tasks)
+                
                 result = {
-                    "data": data["data"],
+                    "data": translated_artworks,
                     "pagination": {
                         "total_pages": (data["info"]["total"] // limit) + 1,
                         "current_page": page
@@ -66,8 +114,14 @@ async def search_artworks(q: str = "", page: int = 1, limit: int = 12):
             response = await client.get(url)
             if response.status_code == 200:
                 data = response.json()
+                
+                # Traducir las obras de arte en paralelo
+                artworks = data["data"]
+                tasks = [translate_artwork(art) for art in artworks]
+                translated_artworks = await asyncio.gather(*tasks)
+                
                 result = {
-                    "data": data["data"],
+                    "data": translated_artworks,
                     "pagination": {
                         "total_pages": (data["info"]["total"] // limit) + 1,
                         "current_page": page
