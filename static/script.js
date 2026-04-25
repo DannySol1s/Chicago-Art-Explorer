@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const noResults = document.getElementById('noResults');
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
+    const filterType = document.getElementById('filterType');
+    const filterAuthor = document.getElementById('filterAuthor');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     const pageInfo = document.getElementById('pageInfo');
@@ -20,7 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Estado
     let currentPage = 1;
-    let currentQuery = '';
+    let currentSearchTerm = '';
+    let currentType = '';
+    let currentAuthor = '';
     let currentArtwork = null;
     const limit = 12;
 
@@ -28,19 +32,24 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchArtworks();
 
     // Eventos
-    searchBtn.addEventListener('click', () => {
-        currentQuery = searchInput.value.trim();
+    function updateFiltersAndFetch() {
+        currentSearchTerm = searchInput.value.trim();
+        currentType = filterType.value;
+        currentAuthor = filterAuthor.value;
         currentPage = 1;
         fetchArtworks();
-    });
+    }
+
+    searchBtn.addEventListener('click', updateFiltersAndFetch);
 
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            currentQuery = searchInput.value.trim();
-            currentPage = 1;
-            fetchArtworks();
+            updateFiltersAndFetch();
         }
     });
+
+    filterType.addEventListener('change', updateFiltersAndFetch);
+    filterAuthor.addEventListener('change', updateFiltersAndFetch);
 
     prevBtn.addEventListener('click', () => {
         if (currentPage > 1) {
@@ -65,9 +74,16 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchArtworks() {
         showLoading();
         try {
-            const url = currentQuery
-                ? `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=${limit}`
-                : `/api/artworks?page=${currentPage}&limit=${limit}`;
+            // Combinar búsqueda manual y autor seleccionado
+            let combinedQuery = currentSearchTerm;
+            if (currentAuthor) {
+                combinedQuery = combinedQuery ? `${combinedQuery} ${currentAuthor}` : currentAuthor;
+            }
+
+            // Construir URL
+            let url = `/api/artworks?page=${currentPage}&limit=${limit}`;
+            if (combinedQuery) url += `&q=${encodeURIComponent(combinedQuery)}`;
+            if (currentType) url += `&type=${encodeURIComponent(currentType)}`;
 
             const response = await fetch(url);
             const data = await response.json();
