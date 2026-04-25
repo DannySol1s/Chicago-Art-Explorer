@@ -98,14 +98,8 @@ async def get_artworks(page: int = 1, limit: int = 12):
             response = await client.get(url)
             if response.status_code == 200:
                 data = response.json()
-                
-                # Traducir las obras de arte en paralelo
-                artworks = data["data"]
-                tasks = [translate_artwork(art) for art in artworks]
-                translated_artworks = await asyncio.gather(*tasks)
-                
                 result = {
-                    "data": translated_artworks,
+                    "data": data["data"],
                     "pagination": {
                         "total_pages": (data["info"]["total"] // limit) + 1,
                         "current_page": page
@@ -116,6 +110,13 @@ async def get_artworks(page: int = 1, limit: int = 12):
             raise HTTPException(status_code=response.status_code, detail="Error al obtener datos")
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/translate")
+async def translate_endpoint(text: str):
+    if not text:
+        return {"translated": ""}
+    translated = await translate_text(text)
+    return {"translated": translated}
 
 @app.get("/api/search")
 async def search_artworks(q: str = "", page: int = 1, limit: int = 12):
@@ -130,14 +131,8 @@ async def search_artworks(q: str = "", page: int = 1, limit: int = 12):
             response = await client.get(url)
             if response.status_code == 200:
                 data = response.json()
-                
-                # Traducir las obras de arte en paralelo
-                artworks = data["data"]
-                tasks = [translate_artwork(art) for art in artworks]
-                translated_artworks = await asyncio.gather(*tasks)
-                
                 result = {
-                    "data": translated_artworks,
+                    "data": data["data"],
                     "pagination": {
                         "total_pages": (data["info"]["total"] // limit) + 1,
                         "current_page": page
