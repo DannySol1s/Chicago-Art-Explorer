@@ -222,12 +222,13 @@ header {
 #modalDesc {
     margin-bottom: 2rem;
     font-size: 0.95rem;
-    text-align: justify;
     line-height: 1.8;
 }
 
 #modalDesc p {
-    margin-bottom: 1rem;
+    text-align: justify !important;
+    margin-bottom: 1.2rem;
+    display: block;
 }
 
 .modal-meta {

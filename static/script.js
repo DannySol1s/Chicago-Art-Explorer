@@ -114,37 +114,33 @@ document.addEventListener('DOMContentLoaded', () => {
     function formatDescription(text) {
         if (!text) return '<p>Sin descripción disponible.</p>';
         
-        // Limpiar espacios extras
+        // Limpiar espacios y normalizar
         text = text.trim();
         
-        // Intentar dividir por frases (punto seguido de espacio o fin de línea)
-        const sentences = text.match(/[^\.!\?]+[\.!\?]+(?:\s|$)/g) || [text];
+        // 1. Dividir por saltos de línea existentes si los hay
+        let blocks = text.split(/\r?\n/).filter(b => b.trim().length > 0);
         
-        if (sentences.length <= 3 && text.length < 300) {
-            return `<p>${text}</p>`;
-        }
+        let finalParagraphs = [];
         
-        let paragraphs = [];
-        let currentParagraph = "";
-        let sentenceCount = 0;
-        
-        sentences.forEach((sentence) => {
-            currentParagraph += sentence;
-            sentenceCount++;
+        blocks.forEach(block => {
+            // 2. Para cada bloque, si es muy largo, dividir por frases
+            const sentences = block.match(/[^\.!\?]+[\.!\?]+(?:\s|$)/g) || [block];
             
-            // Cada 3-4 frases o si el párrafo actual es muy largo, creamos uno nuevo
-            if (sentenceCount >= 3 || currentParagraph.length > 400) {
-                paragraphs.push(`<p>${currentParagraph.trim()}</p>`);
-                currentParagraph = "";
-                sentenceCount = 0;
+            if (sentences.length <= 4) {
+                finalParagraphs.push(block);
+            } else {
+                // Dividir en grupos de 3 frases
+                for (let i = 0; i < sentences.length; i += 3) {
+                    const chunk = sentences.slice(i, i + 3).join(' ');
+                    if (chunk.trim()) {
+                        finalParagraphs.push(chunk.trim());
+                    }
+                }
             }
         });
         
-        if (currentParagraph.trim()) {
-            paragraphs.push(`<p>${currentParagraph.trim()}</p>`);
-        }
-        
-        return paragraphs.join('');
+        // 3. Envolver todo en etiquetas <p>
+        return finalParagraphs.map(p => `<p>${p}</p>`).join('');
     }
 
     function openModal(artwork) {
