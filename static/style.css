@@ -1,11 +1,13 @@
 :root {
-    --bg-color: #0f172a;
-    --card-bg: #1e293b;
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --accent-color: #6366f1;
-    --border-color: rgba(255, 255, 255, 0.1);
-    --transition: all 0.3s ease;
+    --bg-color: #f8f9fa; /* Off-white gallery wall */
+    --card-bg: #ffffff;
+    --text-primary: #1a1a1a;
+    --text-secondary: #5a5a5a;
+    --accent-color: #8b7355; /* Muted gold/bronze */
+    --border-color: #e5e5e5;
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 * {
@@ -71,8 +73,15 @@ header {
     border-radius: 12px;
     border: 1px solid var(--border-color);
     background: var(--card-bg);
-    color: white;
+    color: var(--text-primary);
     outline: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    transition: var(--transition);
+}
+
+#searchInput:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.1);
 }
 
 .primary-btn {
@@ -94,16 +103,18 @@ header {
 
 .artwork-card {
     background: var(--card-bg);
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
     transition: var(--transition);
     border: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
 }
 
 .artwork-card:hover {
     transform: translateY(-5px);
-    border-color: var(--accent-color);
+    box-shadow: var(--shadow-hover);
+    border-color: transparent;
 }
 
 .card-image {
@@ -143,15 +154,17 @@ header {
 .nav-btn {
     padding: 0.8rem 1.5rem;
     border-radius: 12px;
-    background: transparent;
+    background: var(--card-bg);
     border: 1px solid var(--border-color);
-    color: white;
+    color: var(--text-primary);
     cursor: pointer;
     transition: var(--transition);
+    font-weight: 600;
 }
 
 .nav-btn:hover:not(:disabled) {
     background: var(--accent-color);
+    color: white;
 }
 
 .nav-btn:disabled {
@@ -210,42 +223,7 @@ header {
 }
 
 .modal-info h2 {
-    margin-bottom: 0;
-    flex-grow: 1;
-}
-
-.modal-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
     margin-bottom: 0.5rem;
-}
-
-.translate-btn {
-    background: rgba(99, 102, 241, 0.1);
-    color: var(--accent-color);
-    border: 1px solid var(--accent-color);
-    padding: 0.4rem 0.8rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    transition: var(--transition);
-    white-space: nowrap;
-}
-
-.translate-btn:hover {
-    background: var(--accent-color);
-    color: white;
-}
-
-.translate-btn.loading {
-    opacity: 0.7;
-    cursor: wait;
 }
 
 .modal-info h3 {
