@@ -111,11 +111,47 @@ document.addEventListener('DOMContentLoaded', () => {
         hideLoading();
     }
 
+    function formatDescription(text) {
+        if (!text) return '<p>Sin descripción disponible.</p>';
+        
+        // Limpiar espacios extras
+        text = text.trim();
+        
+        // Intentar dividir por frases (punto seguido de espacio o fin de línea)
+        const sentences = text.match(/[^\.!\?]+[\.!\?]+(?:\s|$)/g) || [text];
+        
+        if (sentences.length <= 3 && text.length < 300) {
+            return `<p>${text}</p>`;
+        }
+        
+        let paragraphs = [];
+        let currentParagraph = "";
+        let sentenceCount = 0;
+        
+        sentences.forEach((sentence) => {
+            currentParagraph += sentence;
+            sentenceCount++;
+            
+            // Cada 3-4 frases o si el párrafo actual es muy largo, creamos uno nuevo
+            if (sentenceCount >= 3 || currentParagraph.length > 400) {
+                paragraphs.push(`<p>${currentParagraph.trim()}</p>`);
+                currentParagraph = "";
+                sentenceCount = 0;
+            }
+        });
+        
+        if (currentParagraph.trim()) {
+            paragraphs.push(`<p>${currentParagraph.trim()}</p>`);
+        }
+        
+        return paragraphs.join('');
+    }
+
     function openModal(artwork) {
         modalImage.src = artwork.images?.web?.url || '';
         modalTitle.textContent = artwork.title || 'Sin título';
         modalArtist.textContent = artwork.creators?.[0]?.description || 'Artista desconocido';
-        modalDesc.textContent = artwork.wall_description || artwork.description || 'Sin descripción disponible.';
+        modalDesc.innerHTML = formatDescription(artwork.wall_description || artwork.description);
         modalDate.textContent = `Fecha: ${artwork.creation_date || 'Desconocida'}`;
         modalMedium.textContent = `Técnica: ${artwork.technique || 'Desconocida'}`;
 
