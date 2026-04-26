@@ -21,27 +21,46 @@
 <body>
     <div class="app-container">
         <header>
-            <div class="logo">
-                <h1>Universal Art Explorer</h1>
-                <p>Discover timeless masterpieces and hidden gems from world-renowned museum collections.</p>
+            <div class="header-main">
+                <div class="logo">
+                    <h1>Universal Art Explorer</h1>
+                    <p>Discover timeless masterpieces and hidden gems from world-renowned museum collections.</p>
+                </div>
+                
+                <div class="header-actions">
+                    <button id="randomBtn" class="action-btn" title="Surprise Me!">
+                        <i class="fas fa-dice"></i> <span>Random</span>
+                    </button>
+                    <button id="favoritesBtn" class="action-btn" title="My Collection">
+                        <i class="fas fa-heart"></i> <span>My Collection</span>
+                    </button>
+                </div>
             </div>
             
             <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Search by title, artist, or style..." autocomplete="off">
-                <button id="searchBtn" aria-label="Search">
-                    <i class="fas fa-search"></i>
-                </button>
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="Search by title, artist, or style..." autocomplete="off">
+                </div>
+                <button id="searchBtn" class="primary-btn">Explore</button>
             </div>
         </header>
 
         <main>
             <nav class="filters" aria-label="Artwork filters">
-                <button class="filter-btn active" data-query="" id="filter-all">Collection</button>
-                <button class="filter-btn" data-query="impressionism" id="filter-impressionism">Impressionism</button>
-                <button class="filter-btn" data-query="cats" id="filter-cats">Cats in Art</button>
-                <button class="filter-btn" data-query="picasso" id="filter-picasso">Picasso</button>
-                <button class="filter-btn" data-query="surrealism" id="filter-surrealism">Surrealism</button>
-                <button class="filter-btn" data-query="modern art" id="filter-modern">Modern Art</button>
+                <div class="filter-scroll">
+                    <button class="filter-btn active" data-query="" id="filter-all">Highlights</button>
+                    <button class="filter-btn" data-query="impressionism" id="filter-impressionism">Impressionism</button>
+                    <button class="filter-btn" data-query="renaissance" id="filter-renaissance">Renaissance</button>
+                    <button class="filter-btn" data-query="contemporary" id="filter-modern">Contemporary</button>
+                    <button class="filter-btn" data-query="landscape" id="filter-landscape">Landscapes</button>
+                    <button class="filter-btn" data-query="portrait" id="filter-portrait">Portraits</button>
+                </div>
+                
+                <select id="departmentSelect" class="dept-select">
+                    <option value="">All Departments</option>
+                    <!-- Departments will be injected here -->
+                </select>
             </nav>
 
             <section id="loading" class="loader-container">
@@ -86,20 +105,43 @@
                 <div class="modal-image-container">
                     <div id="modalLoader" class="loader"></div>
                     <img id="modalImage" src="" alt="Artwork detail" style="display: none;">
+                    <button id="modalFavBtn" class="fav-overlay-btn" title="Add to favorites">
+                        <i class="far fa-heart"></i>
+                    </button>
                 </div>
                 <div class="modal-info">
-                    <h2 id="modalTitle">Artwork Title</h2>
-                    <h3 id="modalArtist">Artist Name</h3>
+                    <div class="modal-header">
+                        <h2 id="modalTitle">Artwork Title</h2>
+                        <h3 id="modalArtist">Artist Name</h3>
+                    </div>
                     
                     <div class="details-grid">
                         <div class="detail-item">
-                            <span class="label">Creation Date</span>
+                            <span class="label">Date</span>
                             <span class="value" id="modalDate">c. 1880</span>
                         </div>
                         <div class="detail-item">
                             <span class="label">Medium</span>
                             <span class="value" id="modalMedium">Oil on canvas</span>
                         </div>
+                        <div class="detail-item">
+                            <span class="label">Department</span>
+                            <span class="value" id="modalDept">European Painting</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-description">
+                        <h4>Description</h4>
+                        <p id="modalDesc">No description available for this piece.</p>
+                    </div>
+
+                    <div class="modal-actions">
+                        <a id="downloadBtn" href="#" target="_blank" class="action-btn download">
+                            <i class="fas fa-download"></i> High Res
+                        </a>
+                        <button id="shareBtn" class="action-btn share">
+                            <i class="fas fa-share-alt"></i> Share
+                        </button>
                     </div>
                 </div>
             </div>
