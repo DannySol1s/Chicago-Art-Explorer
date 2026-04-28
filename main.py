@@ -1,9 +1,14 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import httpx
 from cachetools import TTLCache
+
+# Obtener la ruta absoluta del directorio actual
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 # Caché LRU seguro: máximo 1000 elementos, expiran a los 300 segundos (5 minutos)
 cache = TTLCache(maxsize=1000, ttl=300)
@@ -20,7 +25,10 @@ app = FastAPI(title="Art Explorer Simplificado", lifespan=lifespan)
 
 @app.get("/")
 async def root():
-    return FileResponse("static/index.html")
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "Art Explorer API is running. Static files not found."}
 
 @app.get("/api/artworks")
 async def get_artworks(request: Request, page: int = 1, limit: int = 12, q: str = "", type: str = ""):
@@ -33,7 +41,6 @@ async def get_artworks(request: Request, page: int = 1, limit: int = 12, q: str 
     url = f"https://openaccess-api.clevelandart.org/api/artworks/?skip={skip}&limit={limit}&has_image=1"
     
     if q:
-        # En la API de Cleveland, q busca en varios campos incluyendo autor y título.
         url += f"&q={q}"
     if type:
         url += f"&type={type}"
@@ -76,4 +83,7 @@ async def image_proxy(request: Request, url: str):
     except Exception as e:
         return Response(status_code=500)
 
-app.mount("/", StaticFiles(directory="static"), name="static")
+# Montar los archivos estáticos para que se sirvan en las rutas correspondientes
+if os.path.exists(STATIC_DIR):
+    app.mount("/", StaticFiles(directory=STATIC_DIR), name="static")
+
