@@ -1,102 +1,45 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Register Service Worker for PWA
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').catch(err => {
-                console.log('Service Worker registration failed: ', err);
-            });
-        });
-    }
-
-    // DOM Elements
+    // Elementos DOM
     const gallery = document.getElementById('gallery');
     const loading = document.getElementById('loading');
-    const noResults = document.getElementById('no-results');
+    const noResults = document.getElementById('noResults');
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    const departmentSelect = document.getElementById('departmentSelect');
-    const randomBtn = document.getElementById('randomBtn');
-    const favoritesBtn = document.getElementById('favoritesBtn');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     const pageInfo = document.getElementById('pageInfo');
     
-    // Modal Elements
-    const modal = document.getElementById('artworkModal');
-    const closeBtn = document.querySelector('.close-btn');
+    const modal = document.getElementById('artModal');
     const modalImage = document.getElementById('modalImage');
     const modalTitle = document.getElementById('modalTitle');
     const modalArtist = document.getElementById('modalArtist');
+    const modalDesc = document.getElementById('modalDesc');
     const modalDate = document.getElementById('modalDate');
     const modalMedium = document.getElementById('modalMedium');
-    const modalDept = document.getElementById('modalDept');
-    const modalDesc = document.getElementById('modalDesc');
-    const modalLoader = document.getElementById('modalLoader');
-    const modalFavBtn = document.getElementById('modalFavBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const shareBtn = document.getElementById('shareBtn');
+    const closeBtn = document.querySelector('.close-btn');
 
-    const moodBtns = document.querySelectorAll('.mood-btn');
-    const paletteContainer = document.getElementById('paletteContainer');
-    
-    // State
+    // Estado
     let currentPage = 1;
     let currentQuery = '';
-    let currentDept = '';
-    let currentMood = '';
-    let showingFavorites = false;
-    let favorites = JSON.parse(localStorage.getItem('art_favorites') || '[]');
     const limit = 12;
 
-    // Initialize
-    fetchDepartments();
+    // Carga inicial
     fetchArtworks();
 
-    // Event Listeners
-    searchBtn.addEventListener('click', handleSearch);
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleSearch();
-    });
-
-    randomBtn.addEventListener('click', fetchRandomArtwork);
-    
-    favoritesBtn.addEventListener('click', toggleFavoritesView);
-
-    departmentSelect.addEventListener('change', (e) => {
-        currentDept = e.target.value;
-        resetFilters();
+    // Eventos
+    searchBtn.addEventListener('click', () => {
+        currentQuery = searchInput.value.trim();
+        currentPage = 1;
         fetchArtworks();
     });
 
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            resetFilters();
-            btn.classList.add('active');
-            currentQuery = btn.dataset.query;
-            searchInput.value = currentQuery;
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            currentQuery = searchInput.value.trim();
+            currentPage = 1;
             fetchArtworks();
-        });
+        }
     });
-
-    moodBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            resetFilters();
-            btn.classList.add('active');
-            currentMood = btn.dataset.mood;
-            fetchArtworks();
-        });
-    });
-
-    function resetFilters() {
-        currentPage = 1;
-        showingFavorites = false;
-        currentMood = '';
-        currentQuery = '';
-        favoritesBtn.classList.remove('active');
-        filterBtns.forEach(b => b.classList.remove('active'));
-        moodBtns.forEach(b => b.classList.remove('active'));
-    }
 
     prevBtn.addEventListener('click', () => {
         if (currentPage > 1) {
@@ -112,122 +55,28 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // Modal Listeners
-    closeBtn.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', () => modal.classList.remove('show'));
     window.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
-    
-    modalFavBtn.addEventListener('click', () => {
-        const artwork = modalFavBtn.dataset.artwork ? JSON.parse(modalFavBtn.dataset.artwork) : null;
-        if (artwork) {
-            toggleFavorite(artwork);
-            updateModalFavIcon(artwork.id);
-        }
+        if (e.target === modal) modal.classList.remove('show');
     });
 
-    shareBtn.addEventListener('click', () => {
-        const title = modalTitle.textContent;
-        const text = `Check out this masterpiece: ${title}`;
-        if (navigator.share) {
-            navigator.share({ title, text, url: window.location.href });
-        } else {
-            navigator.clipboard.writeText(`${text} - ${window.location.href}`);
-            alert('Link copied to clipboard!');
-        }
-    });
-
-    // Functions
-    async function fetchDepartments() {
-        try {
-            const response = await fetch('/api/departments');
-            if (response.ok) {
-                const depts = await response.json();
-                depts.forEach(dept => {
-                    const option = document.createElement('option');
-                    option.value = dept.name;
-                    option.textContent = dept.name;
-                    departmentSelect.appendChild(option);
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching departments:', error);
-        }
-    }
-
-    function handleSearch() {
-        const query = searchInput.value.trim();
-        resetFilters();
-        currentQuery = query;
-        fetchArtworks();
-    }
-
+    // Funciones
     async function fetchArtworks() {
-        if (showingFavorites) {
-            displayArtworks(favorites);
-            updatePagination({ total_pages: 1, current_page: 1 });
-            return;
-        }
-
         showLoading();
         try {
-            let url = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=${limit}`;
-            if (currentMood) url = `/api/mood/${currentMood}?page=${currentPage}`;
-            if (currentDept) url += `&department=${encodeURIComponent(currentDept)}`;
-            if (!currentQuery && !currentDept && !currentMood) url = `/api/artworks?page=${currentPage}&limit=${limit}`;
+            const url = currentQuery 
+                ? `/api/search?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&limit=${limit}`
+                : `/api/artworks?page=${currentPage}&limit=${limit}`;
 
             const response = await fetch(url);
-            if (!response.ok) throw new Error('Failed to fetch data');
             const data = await response.json();
             
             displayArtworks(data.data);
             updatePagination(data.pagination);
         } catch (error) {
-            console.error('Error fetching artworks:', error);
+            console.error('Error:', error);
             showNoResults();
         }
-    }
-
-    async function fetchRandomArtwork() {
-        showLoading();
-        try {
-            const response = await fetch('/api/random');
-            if (response.ok) {
-                const artwork = await response.json();
-                openModal(artwork);
-                hideLoading();
-            }
-        } catch (error) {
-            console.error('Error fetching random artwork:', error);
-            fetchArtworks(); // Fallback to list
-        }
-    }
-
-    function toggleFavoritesView() {
-        const wasShowing = showingFavorites;
-        resetFilters();
-        showingFavorites = !wasShowing;
-        favoritesBtn.classList.toggle('active', showingFavorites);
-        fetchArtworks();
-    }
-
-    function toggleFavorite(artwork) {
-        const index = favorites.findIndex(f => f.id === artwork.id);
-        if (index > -1) {
-            favorites.splice(index, 1);
-        } else {
-            favorites.push(artwork);
-        }
-        localStorage.setItem('art_favorites', JSON.stringify(favorites));
-        
-        if (showingFavorites) fetchArtworks();
-        
-        const cardBtn = document.querySelector(`.fav-card-btn[data-id="${artwork.id}"]`);
-        if (cardBtn) cardBtn.classList.toggle('active', index === -1);
-    }
-
-    function isFavorite(id) {
-        return favorites.some(f => f.id === id);
     }
 
     function displayArtworks(artworks) {
@@ -237,54 +86,24 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        artworks.forEach((artwork, index) => {
-            const imageUrl = artwork.images?.web?.url || '';
+        artworks.forEach(artwork => {
+            const imageUrl = artwork.images?.web?.url;
             if (!imageUrl) return;
 
             const card = document.createElement('div');
             card.className = 'artwork-card';
-            card.style.animationDelay = `${index * 0.05}s`;
-            
-            const title = artwork.title || 'Untitled';
-            const artist = artwork.creators?.[0]?.description || 'Unknown Artist';
-            const date = artwork.creation_date || 'Unknown Date';
-            const favClass = isFavorite(artwork.id) ? 'active' : '';
-
             card.innerHTML = `
-                <div class="image-wrapper">
-                    <button class="fav-card-btn ${favClass}" data-id="${artwork.id}" title="Toggle Favorite">
-                        <i class="fas fa-heart"></i>
-                    </button>
-                    <img class="card-image" src="${imageUrl}" alt="${title}" loading="lazy" style="opacity: 0; transition: opacity 0.8s ease;">
-                </div>
+                <img class="card-image" src="${imageUrl}" alt="${artwork.title}" loading="lazy">
                 <div class="card-content">
-                    <h3 class="artwork-title" title="${title}">${title}</h3>
-                    <p class="artwork-artist">${artist}</p>
-                    <div class="card-footer">
-                        <span class="artwork-date">${date}</span>
-                    </div>
+                    <h3 class="artwork-title">${artwork.title || 'Sin título'}</h3>
+                    <p class="artwork-artist">${artwork.creators?.[0]?.description || 'Artista desconocido'}</p>
                 </div>
             `;
             
-            const img = card.querySelector('.card-image');
-            img.onload = () => {
-                img.style.opacity = '1';
-                card.classList.add('loaded');
-            };
+            const img = card.querySelector('img');
             img.onerror = () => {
-                if (!img.dataset.triedProxy) {
-                    img.dataset.triedProxy = 'true';
-                    img.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
-                } else {
-                    img.src = 'https://via.placeholder.com/400x500?text=Arte+no+disponible';
-                    img.style.opacity = '1';
-                }
+                img.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
             };
-
-            card.querySelector('.fav-card-btn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                toggleFavorite(artwork);
-            });
 
             card.addEventListener('click', () => openModal(artwork));
             gallery.appendChild(card);
@@ -292,90 +111,23 @@ document.addEventListener('DOMContentLoaded', () => {
         hideLoading();
     }
 
-    function updatePagination(paginationInfo) {
-        if (paginationInfo) {
-            const totalPages = paginationInfo.total_pages || 1;
-            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
-            prevBtn.disabled = currentPage <= 1;
-            nextBtn.disabled = currentPage >= totalPages;
-            
-            const paginationEl = document.querySelector('.pagination');
-            paginationEl.style.display = (showingFavorites || totalPages <= 1) ? 'none' : 'flex';
-        }
-    }
-
     function openModal(artwork) {
-        const imageUrl = artwork.images?.web?.url || '';
-        modalLoader.style.display = 'block';
-        modalImage.style.display = 'none';
-        paletteContainer.innerHTML = '<p class="loading-palette">Analyzing colors...</p>';
+        modalImage.src = artwork.images?.web?.url || '';
+        modalTitle.textContent = artwork.title || 'Sin título';
+        modalArtist.textContent = artwork.creators?.[0]?.description || 'Artista desconocido';
+        modalDesc.textContent = artwork.wall_description || artwork.description || 'Sin descripción disponible.';
+        modalDate.textContent = `Fecha: ${artwork.creation_date || 'Desconocida'}`;
+        modalMedium.textContent = `Técnica: ${artwork.technique || 'Desconocida'}`;
         
-        modalImage.src = imageUrl;
-        modalTitle.textContent = artwork.title || 'Untitled';
-        modalArtist.textContent = artwork.creators?.[0]?.description || 'Unknown Artist';
-        modalDate.textContent = artwork.creation_date || 'Unknown Date';
-        modalMedium.textContent = artwork.technique || artwork.type || 'Unknown Medium';
-        modalDept.textContent = artwork.department || 'Not Specified';
-        modalDesc.textContent = artwork.wall_description || artwork.description || 'No detailed description available for this piece.';
-        
-        downloadBtn.href = artwork.images?.print?.url || artwork.images?.web?.url || '#';
-        modalFavBtn.dataset.artwork = JSON.stringify(artwork);
-        updateModalFavIcon(artwork.id);
-
-        modalImage.onload = () => {
-            modalLoader.style.display = 'none';
-            modalImage.style.display = 'block';
-            fetchPalette(imageUrl);
-        };
-
         modal.classList.add('show');
-        document.body.style.overflow = 'hidden';
     }
 
-    async function fetchPalette(url) {
-        try {
-            const response = await fetch(`/api/palette?image_url=${encodeURIComponent(url)}`);
-            if (response.ok) {
-                const palette = await response.json();
-                displayPalette(palette);
-            } else {
-                paletteContainer.innerHTML = '<p>Palette analysis failed.</p>';
-            }
-        } catch (error) {
-            console.error('Error fetching palette:', error);
-            paletteContainer.innerHTML = '';
+    function updatePagination(pagination) {
+        if (pagination) {
+            pageInfo.textContent = `Página ${currentPage} de ${pagination.total_pages || 1}`;
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= (pagination.total_pages || 1);
         }
-    }
-
-    function displayPalette(palette) {
-        paletteContainer.innerHTML = '';
-        palette.forEach(color => {
-            const swatch = document.createElement('div');
-            swatch.className = 'color-swatch';
-            swatch.style.backgroundColor = color.hex;
-            swatch.style.flex = `1 1 ${color.pixel_share}%`;
-            swatch.title = `${color.hex} (${color.pixel_share}%)`;
-            swatch.textContent = color.hex;
-            
-            swatch.addEventListener('click', () => {
-                navigator.clipboard.writeText(color.hex);
-                const originalText = swatch.textContent;
-                swatch.textContent = 'Copied!';
-                setTimeout(() => swatch.textContent = originalText, 1000);
-            });
-            
-            paletteContainer.appendChild(swatch);
-        });
-    }
-
-    function updateModalFavIcon(id) {
-        const icon = modalFavBtn.querySelector('i');
-        icon.className = isFavorite(id) ? 'fas fa-heart' : 'far fa-heart';
-    }
-
-    function closeModal() {
-        modal.classList.remove('show');
-        document.body.style.overflow = '';
     }
 
     function showLoading() {
