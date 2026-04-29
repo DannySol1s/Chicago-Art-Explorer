@@ -57,15 +57,26 @@
 
         <main>
             <nav class="filters" aria-label="Artwork filters">
-                <div class="filter-scroll">
-                    <button class="filter-btn active" data-query="" id="filter-all">Highlights</button>
-                    <button class="filter-btn" data-query="impressionism" id="filter-impressionism">Impressionism</button>
-                    <button class="filter-btn" data-query="renaissance" id="filter-renaissance">Renaissance</button>
-                    <button class="filter-btn" data-query="contemporary" id="filter-modern">Contemporary</button>
-                    <button class="filter-btn" data-query="landscape" id="filter-landscape">Landscapes</button>
-                    <button class="filter-btn" data-query="portrait" id="filter-portrait">Portraits</button>
+                <div class="filter-group">
+                    <span class="filter-label">Collection:</span>
+                    <div class="filter-scroll">
+                        <button class="filter-btn active" data-query="" id="filter-all">Highlights</button>
+                        <button class="filter-btn" data-query="impressionism" id="filter-impressionism">Impressionism</button>
+                        <button class="filter-btn" data-query="renaissance" id="filter-renaissance">Renaissance</button>
+                        <button class="filter-btn" data-query="contemporary" id="filter-modern">Contemporary</button>
+                    </div>
                 </div>
                 
+                <div class="filter-group">
+                    <span class="filter-label">Mood:</span>
+                    <div class="filter-scroll">
+                        <button class="mood-btn" data-mood="calma">Calma</button>
+                        <button class="mood-btn" data-mood="energía">Energía</button>
+                        <button class="mood-btn" data-mood="melancolía">Melancolía</button>
+                        <button class="mood-btn" data-mood="misterio">Misterio</button>
+                    </div>
+                </div>
+
                 <select id="departmentSelect" class="dept-select">
                     <option value="">All Departments</option>
                     <!-- Departments will be injected here -->
@@ -136,6 +147,13 @@
                         <div class="detail-item">
                             <span class="label">Department</span>
                             <span class="value" id="modalDept">European Painting</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-palette">
+                        <h4>Color Palette</h4>
+                        <div id="paletteContainer" class="palette-grid">
+                            <!-- Colors will be injected here -->
                         </div>
                     </div>
 
