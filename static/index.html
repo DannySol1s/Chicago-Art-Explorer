@@ -1,174 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Explore and discover masterpieces from the world's leading museums. A premium digital art gallery experience.">
-    <meta name="keywords" content="Art, Museum, Gallery, Paintings, Masterpieces, Open Access">
-    <title>Universal Art Explorer | Discover Museum Masterpieces</title>
+    <title>Explorador de Arte Minimalista</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#6366f1">
-    
-    <!-- iOS support -->
-    <link rel="apple-touch-icon" href="icon-512.png">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
     <div class="app-container">
         <header>
-            <div class="header-main">
-                <div class="logo">
-                    <h1>Universal Art Explorer</h1>
-                    <p>Discover timeless masterpieces and hidden gems from world-renowned museum collections.</p>
-                </div>
-                
-                <div class="header-actions">
-                    <button id="randomBtn" class="action-btn" title="Surprise Me!">
-                        <i class="fas fa-dice"></i> <span>Random</span>
-                    </button>
-                    <button id="favoritesBtn" class="action-btn" title="My Collection">
-                        <i class="fas fa-heart"></i> <span>My Collection</span>
-                    </button>
-                </div>
+            <div class="logo">
+                <h1>Universal<span>Art</span></h1>
             </div>
             
             <div class="search-container">
                 <div class="search-input-wrapper">
                     <i class="fas fa-search search-icon"></i>
-                    <input type="text" id="searchInput" placeholder="Search by title, artist, or style..." autocomplete="off">
+                    <input type="text" id="searchInput" placeholder="Buscar por título o artista..." autocomplete="off">
                 </div>
-                <button id="searchBtn" class="primary-btn">Explore</button>
+                <button id="searchBtn" class="primary-btn">Buscar</button>
             </div>
         </header>
 
         <main>
-            <nav class="filters" aria-label="Artwork filters">
-                <div class="filter-group">
-                    <span class="filter-label">Collection:</span>
-                    <div class="filter-scroll">
-                        <button class="filter-btn active" data-query="" id="filter-all">Highlights</button>
-                        <button class="filter-btn" data-query="impressionism" id="filter-impressionism">Impressionism</button>
-                        <button class="filter-btn" data-query="renaissance" id="filter-renaissance">Renaissance</button>
-                        <button class="filter-btn" data-query="contemporary" id="filter-modern">Contemporary</button>
-                    </div>
-                </div>
-                
-                <div class="filter-group">
-                    <span class="filter-label">Mood:</span>
-                    <div class="filter-scroll">
-                        <button class="mood-btn" data-mood="calma">Calma</button>
-                        <button class="mood-btn" data-mood="energía">Energía</button>
-                        <button class="mood-btn" data-mood="melancolía">Melancolía</button>
-                        <button class="mood-btn" data-mood="misterio">Misterio</button>
-                    </div>
-                </div>
-
-                <select id="departmentSelect" class="dept-select">
-                    <option value="">All Departments</option>
-                    <!-- Departments will be injected here -->
-                </select>
-            </nav>
-
-            <section id="loading" class="loader-container">
-                <div class="loader"></div>
-                <p>Curating your gallery...</p>
-            </section>
-
-            <section id="gallery" class="gallery hidden">
-                <!-- Artwork cards will be injected here -->
-            </section>
-
-            <section id="no-results" class="hidden message">
-                <i class="fas fa-search-minus"></i>
-                <h2>No masterpieces found</h2>
-                <p>Try adjusting your search terms or exploring a different category.</p>
-            </section>
-
-            <nav class="pagination" aria-label="Pagination">
-                <button id="prevBtn" disabled title="Previous Page">
-                    <i class="fas fa-chevron-left"></i> Previous
-                </button>
-                <span id="pageInfo">Page 1</span>
-                <button id="nextBtn" title="Next Page">
-                    Next <i class="fas fa-chevron-right"></i>
-                </button>
-            </nav>
-        </main>
-        
-        <footer>
-            <div class="footer-content">
-                <p>Data provided by the <a href="https://openaccess-api.clevelandart.org/" target="_blank" rel="noopener">Cleveland Museum of Art API</a></p>
-                <p class="copyright">&copy; 2026 Universal Art Explorer. Designed for Art Lovers.</p>
+            <div id="gallery" class="gallery-mosaic">
+                <!-- Artworks will be injected here -->
             </div>
-        </footer>
+
+            <div id="loading" class="loading-state hidden">
+                <div class="spinner"></div>
+                <p>Cargando obras maestras...</p>
+            </div>
+
+            <div id="noResults" class="no-results hidden">
+                <i class="fas fa-image"></i>
+                <p>No se encontraron resultados. Intenta con otra búsqueda.</p>
+            </div>
+
+            <div class="pagination">
+                <button id="prevBtn" class="nav-btn" disabled><i class="fas fa-chevron-left"></i> Anterior</button>
+                <span id="pageInfo">Página 1</span>
+                <button id="nextBtn" class="nav-btn">Siguiente <i class="fas fa-chevron-right"></i></button>
+            </div>
+        </main>
     </div>
 
-    <!-- Modal for viewing artwork details -->
-    <div id="artworkModal" class="modal" aria-hidden="true" role="dialog">
+    <!-- Modal Simplificado -->
+    <div id="artModal" class="modal">
         <div class="modal-content">
-            <span class="close-btn" aria-label="Close modal">&times;</span>
+            <span class="close-btn">&times;</span>
             <div class="modal-body">
                 <div class="modal-image-container">
-                    <div id="modalLoader" class="loader"></div>
-                    <img id="modalImage" src="" alt="Artwork detail" style="display: none;">
-                    <button id="modalFavBtn" class="fav-overlay-btn" title="Add to favorites">
-                        <i class="far fa-heart"></i>
-                    </button>
+                    <img id="modalImage" src="" alt="">
                 </div>
                 <div class="modal-info">
-                    <div class="modal-header">
-                        <h2 id="modalTitle">Artwork Title</h2>
-                        <h3 id="modalArtist">Artist Name</h3>
-                    </div>
-                    
-                    <div class="details-grid">
-                        <div class="detail-item">
-                            <span class="label">Date</span>
-                            <span class="value" id="modalDate">c. 1880</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">Medium</span>
-                            <span class="value" id="modalMedium">Oil on canvas</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">Department</span>
-                            <span class="value" id="modalDept">European Painting</span>
-                        </div>
-                    </div>
-
-                    <div class="modal-palette">
-                        <h4>Color Palette</h4>
-                        <div id="paletteContainer" class="palette-grid">
-                            <!-- Colors will be injected here -->
-                        </div>
-                    </div>
-
-                    <div class="modal-description">
-                        <h4>Description</h4>
-                        <p id="modalDesc">No description available for this piece.</p>
-                    </div>
-
-                    <div class="modal-actions">
-                        <a id="downloadBtn" href="#" target="_blank" class="action-btn download">
-                            <i class="fas fa-download"></i> High Res
-                        </a>
-                        <button id="shareBtn" class="action-btn share">
-                            <i class="fas fa-share-alt"></i> Share
-                        </button>
+                    <h2 id="modalTitle"></h2>
+                    <h3 id="modalArtist"></h3>
+                    <p id="modalDesc"></p>
+                    <div class="modal-meta">
+                        <span id="modalDate"></span>
+                        <span id="modalMedium"></span>
                     </div>
                 </div>
             </div>
