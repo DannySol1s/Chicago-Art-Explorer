@@ -252,9 +252,20 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             
             const img = card.querySelector('.card-image');
-            img.onload = () => img.style.opacity = '1';
+            img.onload = () => {
+                img.style.opacity = '1';
+                card.classList.add('loaded');
+            };
             img.onerror = () => {
-                img.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
+                // Si falla la carga directa, intentamos por el proxy
+                if (!img.dataset.triedProxy) {
+                    img.dataset.triedProxy = 'true';
+                    img.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
+                } else {
+                    // Si el proxy también falla, mostramos un placeholder elegante
+                    img.src = 'https://via.placeholder.com/400x500?text=Arte+no+disponible';
+                    img.style.opacity = '1';
+                }
             };
 
             card.querySelector('.fav-card-btn').addEventListener('click', (e) => {
