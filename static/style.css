@@ -11,7 +11,6 @@
 * {
     margin: 0;
     padding: 0;
-    box-覚え: border-box;
     box-sizing: border-box;
 }
 
@@ -223,6 +222,12 @@ header {
 #modalDesc {
     margin-bottom: 2rem;
     font-size: 0.95rem;
+    text-align: justify;
+    line-height: 1.8;
+}
+
+#modalDesc p {
+    margin-bottom: 1rem;
 }
 
 .modal-meta {
