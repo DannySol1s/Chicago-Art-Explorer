@@ -38,8 +38,8 @@ self.addEventListener('fetch', (event) => {
       // Return cached response if found, else fetch from network
       return response || fetch(event.request);
     }).catch(() => {
-        // Fallback for failed fetches (offline mode)
-        return new Response('Offline content not available');
+      // Fallback for failed fetches (offline mode)
+      return new Response('Offline content not available');
     })
   );
 });
