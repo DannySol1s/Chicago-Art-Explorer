@@ -31,56 +31,37 @@ async def root():
     return FileResponse("static/index.html")
 
 @app.get("/api/artworks")
-async def get_artworks(page: int = 1, limit: int = 12):
-    cache_key = f"artworks_p{page}_l{limit}"
+async def get_artworks(page: int = 1, limit: int = 12, q: str = "", type: str = ""):
+    cache_key = f"artworks_q{q}_t{type}_p{page}_l{limit}"
     cached = get_from_cache(cache_key)
     if cached: return cached
 
     skip = (page - 1) * limit
     url = f"https://openaccess-api.clevelandart.org/api/artworks/?skip={skip}&limit={limit}&has_image=1"
+    
+    if q:
+        # En la API de Cleveland, q busca en varios campos incluyendo autor y título.
+        url += f"&q={q}"
+    if type:
+        url += f"&type={type}"
+        
     async with httpx.AsyncClient(timeout=15.0) as client:
         try:
             response = await client.get(url)
             if response.status_code == 200:
                 data = response.json()
+                total = data.get("info", {}).get("total", 0)
                 result = {
-                    "data": data["data"],
+                    "data": data.get("data", []),
                     "pagination": {
-                        "total_pages": (data["info"]["total"] // limit) + 1,
-                        "current_page": page
+                        "total_pages": (total // limit) + 1 if total > 0 else 1,
+                        "current_page": page,
+                        "total_items": total
                     }
                 }
                 set_to_cache(cache_key, result)
                 return result
             raise HTTPException(status_code=response.status_code, detail="Error al obtener datos")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-
-
-@app.get("/api/search")
-async def search_artworks(q: str = "", page: int = 1, limit: int = 12):
-    cache_key = f"search_{q}_p{page}"
-    cached = get_from_cache(cache_key)
-    if cached: return cached
-
-    skip = (page - 1) * limit
-    url = f"https://openaccess-api.clevelandart.org/api/artworks/?q={q}&skip={skip}&limit={limit}&has_image=1"
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        try:
-            response = await client.get(url)
-            if response.status_code == 200:
-                data = response.json()
-                result = {
-                    "data": data["data"],
-                    "pagination": {
-                        "total_pages": (data["info"]["total"] // limit) + 1,
-                        "current_page": page
-                    }
-                }
-                set_to_cache(cache_key, result)
-                return result
-            raise HTTPException(status_code=500, detail="Error en la búsqueda")
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
