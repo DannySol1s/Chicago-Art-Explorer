@@ -210,7 +210,42 @@ header {
 }
 
 .modal-info h2 {
+    margin-bottom: 0;
+    flex-grow: 1;
+}
+
+.modal-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
     margin-bottom: 0.5rem;
+}
+
+.translate-btn {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.translate-btn:hover {
+    background: var(--accent-color);
+    color: white;
+}
+
+.translate-btn.loading {
+    opacity: 0.7;
+    cursor: wait;
 }
 
 .modal-info h3 {
