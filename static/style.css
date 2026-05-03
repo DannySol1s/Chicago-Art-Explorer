@@ -31,9 +31,16 @@ body {
 
 header {
     display: flex;
+    flex-direction: column;
+    margin-bottom: 3rem;
+    gap: 1.5rem;
+}
+
+.header-top {
+    display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 3rem;
+    width: 100%;
     flex-wrap: wrap;
     gap: 1rem;
 }
@@ -52,6 +59,33 @@ header {
     gap: 0.5rem;
     flex-grow: 1;
     max-width: 600px;
+    align-self: flex-end;
+}
+
+.filters-container {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    outline: none;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    transition: var(--transition);
+    min-width: 200px;
+}
+
+.filter-select:hover, .filter-select:focus {
+    border-color: var(--accent-color);
 }
 
 .search-input-wrapper {
