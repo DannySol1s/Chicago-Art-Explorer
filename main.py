@@ -27,17 +27,33 @@ def set_to_cache(key, value):
 
 translator = GoogleTranslator(source='en', target='es')
 
+# Cache de traducciones para evitar peticiones redundantes
+translation_cache = {}
+# Semáforo para limitar la cantidad de peticiones simultáneas a Google Translate
+translation_semaphore = asyncio.Semaphore(3)
+
 async def translate_text(text: str) -> str:
     if not text or len(text) < 3:
         return text
-    try:
-        # Ejecutar la traducción en un hilo para no bloquear el bucle de eventos
-        loop = asyncio.get_event_loop()
-        translated = await loop.run_in_executor(None, translator.translate, text)
-        return translated
-    except Exception as e:
-        print(f"Error de traducción: {e}")
-        return text
+    
+    # Verificar si ya lo hemos traducido
+    if text in translation_cache:
+        return translation_cache[text]
+        
+    async with translation_semaphore:
+        try:
+            # Pequeño retardo aleatorio para no saturar el servicio gratuito
+            await asyncio.sleep(0.2)
+            loop = asyncio.get_event_loop()
+            translated = await loop.run_in_executor(None, translator.translate, text)
+            
+            # Guardar en cache
+            translation_cache[text] = translated
+            return translated
+        except Exception as e:
+            print(f"Error de traducción: {e}")
+            # Si falla, devolvemos el original para no romper la app
+            return text
 
 async def translate_artwork(artwork: dict) -> dict:
     # Traducir título
