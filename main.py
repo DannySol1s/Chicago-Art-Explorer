@@ -6,7 +6,6 @@ import os
 import time
 import asyncio
 from typing import Optional, List
-from deep_translator import GoogleTranslator
 
 app = FastAPI(title="Art Explorer Simplificado")
 
@@ -25,61 +24,7 @@ def get_from_cache(key):
 def set_to_cache(key, value):
     cache[key] = (value, time.time())
 
-translator = GoogleTranslator(source='en', target='es')
 
-# Cache de traducciones para evitar peticiones redundantes
-translation_cache = {}
-# Semáforo para limitar la cantidad de peticiones simultáneas a Google Translate
-translation_semaphore = asyncio.Semaphore(3)
-
-async def translate_text(text: str) -> str:
-    if not text or len(text) < 3:
-        return text
-    
-    # Verificar si ya lo hemos traducido
-    if text in translation_cache:
-        return translation_cache[text]
-        
-    async with translation_semaphore:
-        try:
-            # Pequeño retardo aleatorio para no saturar el servicio gratuito
-            await asyncio.sleep(0.2)
-            loop = asyncio.get_event_loop()
-            translated = await loop.run_in_executor(None, translator.translate, text)
-            
-            # Guardar en cache
-            translation_cache[text] = translated
-            return translated
-        except Exception as e:
-            print(f"Error de traducción: {e}")
-            # Si falla, devolvemos el original para no romper la app
-            return text
-
-async def translate_artwork(artwork: dict) -> dict:
-    # Traducir título
-    if artwork.get("title"):
-        artwork["title"] = await translate_text(artwork["title"])
-    
-    # Traducir descripción
-    desc = artwork.get("wall_description") or artwork.get("description")
-    if desc:
-        translated_desc = await translate_text(desc)
-        if artwork.get("wall_description"):
-            artwork["wall_description"] = translated_desc
-        else:
-            artwork["description"] = translated_desc
-            
-    # Traducir técnica
-    if artwork.get("technique"):
-        artwork["technique"] = await translate_text(artwork["technique"])
-        
-    # Traducir información del creador (opcional, pero ayuda)
-    if artwork.get("creators") and len(artwork["creators"]) > 0:
-        creator = artwork["creators"][0]
-        if creator.get("description"):
-            creator["description"] = await translate_text(creator["description"])
-            
-    return artwork
 
 @app.get("/")
 async def root():
@@ -111,12 +56,7 @@ async def get_artworks(page: int = 1, limit: int = 12):
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/translate")
-async def translate_endpoint(text: str):
-    if not text:
-        return {"translated": ""}
-    translated = await translate_text(text)
-    return {"translated": translated}
+
 
 @app.get("/api/search")
 async def search_artworks(q: str = "", page: int = 1, limit: int = 12):
