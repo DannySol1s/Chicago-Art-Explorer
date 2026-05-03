@@ -21,16 +21,37 @@
 <body>
     <div class="app-container">
         <header>
-            <div class="logo">
-                <h1>Universal<span>Art</span></h1>
-            </div>
-
-            <div class="search-container">
-                <div class="search-input-wrapper">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" id="searchInput" placeholder="Buscar por título o artista..." autocomplete="off">
+            <div class="header-top">
+                <div class="logo">
+                    <h1>Universal<span>Art</span></h1>
                 </div>
-                <button id="searchBtn" class="primary-btn">Buscar</button>
+
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="searchInput" placeholder="Buscar por título o artista..." autocomplete="off">
+                    </div>
+                    <button id="searchBtn" class="primary-btn">Buscar</button>
+                </div>
+            </div>
+            <div class="filters-container">
+                <select id="filterType" class="filter-select">
+                    <option value="">Todas las Técnicas</option>
+                    <option value="Painting">Pintura</option>
+                    <option value="Sculpture">Escultura</option>
+                    <option value="Photography">Fotografía</option>
+                    <option value="Textile">Textil</option>
+                    <option value="Print">Impresión</option>
+                </select>
+                
+                <select id="filterAuthor" class="filter-select">
+                    <option value="">Cualquier Autor (o usa el buscador)</option>
+                    <option value="Vincent van Gogh">Vincent van Gogh</option>
+                    <option value="Claude Monet">Claude Monet</option>
+                    <option value="Pablo Picasso">Pablo Picasso</option>
+                    <option value="Rembrandt">Rembrandt</option>
+                    <option value="Francisco Goya">Francisco Goya</option>
+                </select>
             </div>
         </header>
 
