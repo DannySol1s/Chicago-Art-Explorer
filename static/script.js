@@ -103,33 +103,51 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const fragment = document.createDocumentFragment();
+
         artworks.forEach(artwork => {
             const imageUrl = artwork.images?.web?.url;
             if (!imageUrl) return;
 
             const card = document.createElement('div');
             card.className = 'artwork-card';
-            card.innerHTML = `
-                <img class="card-image" src="${imageUrl}" alt="${artwork.title}" loading="lazy">
-                <div class="card-content">
-                    <h3 class="artwork-title">${artwork.title || 'Sin título'}</h3>
-                    <p class="artwork-artist">${artwork.creators?.[0]?.description || 'Artista desconocido'}</p>
-                </div>
-            `;
-
-            const img = card.querySelector('img');
+            
+            // Creación segura de elementos para evitar XSS
+            const img = document.createElement('img');
+            img.className = 'card-image';
+            img.src = imageUrl;
+            img.alt = artwork.title || 'Artwork';
+            img.loading = 'lazy';
             img.onerror = () => {
                 img.src = `/api/image/proxy?url=${encodeURIComponent(imageUrl)}`;
             };
 
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'card-content';
+
+            const titleH3 = document.createElement('h3');
+            titleH3.className = 'artwork-title';
+            titleH3.textContent = artwork.title || 'Sin título';
+
+            const artistP = document.createElement('p');
+            artistP.className = 'artwork-artist';
+            artistP.textContent = artwork.creators?.[0]?.description || 'Artista desconocido';
+
+            contentDiv.appendChild(titleH3);
+            contentDiv.appendChild(artistP);
+            card.appendChild(img);
+            card.appendChild(contentDiv);
+
             card.addEventListener('click', () => openModal(artwork));
-            gallery.appendChild(card);
+            fragment.appendChild(card);
         });
+        
+        gallery.appendChild(fragment);
         hideLoading();
     }
 
     function formatDescription(text) {
-        if (!text) return '<p>Sin descripción disponible.</p>';
+        if (!text) return ['Sin descripción disponible.'];
         
         // Limpiar espacios y normalizar
         text = text.trim();
@@ -156,8 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // 3. Envolver todo en etiquetas <p>
-        return finalParagraphs.map(p => `<p>${p}</p>`).join('');
+        return finalParagraphs;
     }
 
     function openModal(artwork) {
@@ -166,7 +183,16 @@ document.addEventListener('DOMContentLoaded', () => {
         modalImage.src = artwork.images?.web?.url || '';
         modalTitle.textContent = artwork.title || 'Sin título';
         modalArtist.textContent = artwork.creators?.[0]?.description || 'Artista desconocido';
-        modalDesc.innerHTML = formatDescription(artwork.wall_description || artwork.description);
+        
+        // Inserción segura de párrafos
+        modalDesc.innerHTML = '';
+        const paragraphs = formatDescription(artwork.wall_description || artwork.description);
+        paragraphs.forEach(text => {
+            const p = document.createElement('p');
+            p.textContent = text;
+            modalDesc.appendChild(p);
+        });
+
         modalDate.textContent = `Fecha: ${artwork.creation_date || 'Desconocida'}`;
         modalMedium.textContent = `Técnica: ${artwork.technique || 'Desconocida'}`;
 
