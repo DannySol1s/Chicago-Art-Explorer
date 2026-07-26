@@ -44,16 +44,17 @@ async def get_artworks(
         return cache[cache_key]
 
     skip = (page - 1) * limit
-    url = f"https://openaccess-api.clevelandart.org/api/artworks/?skip={skip}&limit={limit}&has_image=1"
+    url = "https://openaccess-api.clevelandart.org/api/artworks/"
+    params = {"skip": skip, "limit": limit, "has_image": 1}
 
     if q:
-        url += f"&q={q}"
+        params["q"] = q
     if type:
-        url += f"&type={type}"
+        params["type"] = type
 
     client = request.app.state.http_client
     try:
-        response = await client.get(url)
+        response = await client.get(url, params=params)
         if response.status_code == 200:
             data = response.json()
             total = data.get("info", {}).get("total", 0)
