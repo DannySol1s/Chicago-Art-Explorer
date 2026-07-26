@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Response, Request
+from fastapi import FastAPI, HTTPException, Response, Request, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import httpx
@@ -31,7 +31,13 @@ async def root():
     return {"message": "Art Explorer API is running. Static files not found."}
 
 @app.get("/api/artworks")
-async def get_artworks(request: Request, page: int = 1, limit: int = 12, q: str = "", type: str = ""):
+async def get_artworks(
+    request: Request,
+    page: int = Query(1, ge=1),
+    limit: int = Query(12, ge=1, le=100),
+    q: str = "",
+    type: str = "",
+):
     cache_key = f"artworks_q{q}_t{type}_p{page}_l{limit}"
     
     if cache_key in cache:
@@ -39,12 +45,12 @@ async def get_artworks(request: Request, page: int = 1, limit: int = 12, q: str 
 
     skip = (page - 1) * limit
     url = f"https://openaccess-api.clevelandart.org/api/artworks/?skip={skip}&limit={limit}&has_image=1"
-    
+
     if q:
         url += f"&q={q}"
     if type:
         url += f"&type={type}"
-        
+
     client = request.app.state.http_client
     try:
         response = await client.get(url)
